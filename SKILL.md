@@ -99,8 +99,8 @@ These live in hidden bone collections and don't even show with Alt+H. Make the c
 ### Step 5 — Rename bones to the Humanoid convention
 Rename to Hips/Spine#/Neck/Head, UpLeg/Leg/Foot/Toe, Shoulder/UpArm/ForeArm/Hand, fingers, with `_L`/`_R` suffixes. Renaming in Object Mode on `armature.bones` auto-updates vertex group names. Rarely a rename drops a weight — pose-test after. → `references/bone-naming.md` + `references/08-rename.md`
 
-### Step 6 — Fix bone display & tail directions (polish)
-Set armature to OCTAHEDRAL + show-in-front, point each bone's tail at its child (or extend end bones along the parent direction) so the rig reads cleanly. → `references/09-bone-display.md`
+### Step 6 — Connect chain bones, fix display & tail directions
+MMD Tools imports every bone with `use_connect = False`, so the armature looks like a pile of free-floating bones even though parenting is intact. Set armature to OCTAHEDRAL + show-in-front, point each bone's tail at its child (or extend end bones along the parent direction), then **connect bones by geometry**: for each child, if its **head already coincides with its parent's tail** (distance ≈ 0), connect it; otherwise leave it free. This is a purely geometric test — no bone-name lists, no branch logic — and it **connects every in-line bone including jiggle/cloth chains (sleeve, skirt, hair, sash)**, since the modeler placed those heads on their parent's tail too. Because we only connect heads that are *already* on the parent's tail, the `use_connect` move is a no-op: no rest-pose head shifts, deformation is untouched, and a branch parent can have multiple children connected at once. Bones whose head sits offset from the parent's tail (limb starts, free controls, mismatched branches) never match and stay disconnected. Pose-test after connecting. → `references/09-bone-display.md`
 
 ### Step 7 — Convert materials to Principled BSDF (optional but common)
 MMD toon shaders (Emission + Transparent + Mix + LightPath) → Principled BSDF, **reusing** the existing texture/mapping/UV nodes. Never `nodes.clear()`. → `references/material-bsdf.md`

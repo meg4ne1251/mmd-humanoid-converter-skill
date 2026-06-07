@@ -85,7 +85,7 @@ with bpy.context.temp_override(**ctx):
 
 If creating the origin root would instead require complex weight surgery (it shouldn't, since the new bone holds no weight), skip it — the user has said not to force it.
 
-> Note on `use_connect`: connecting a child to its parent forces the child's head onto the parent's tail. To keep heads in place, move the parent's tail to the child's head **first**, then set `use_connect = True` — and only do this when the parent has exactly one child. See `references/09-bone-display.md` for the safe pattern; for pure restructuring you usually don't need `use_connect` at all.
+> Note on `use_connect`: for pure restructuring you usually don't need it at all — leave connection to Step 6. Step 6 connects by **geometry**: it only sets `use_connect = True` on children whose head already coincides with the parent's tail, so the connect never moves a head and never distorts deformation. See `references/09-bone-display.md`.
 
 ---
 
