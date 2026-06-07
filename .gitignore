@@ -3,6 +3,11 @@
 docs-not-commit/
 docs-note-commit/
 
+# ===== Gemini CLI ローカル設定 =====
+# skills/ はルートの SKILL.md / references/ へのシンボリックリンクなのでコミット不要。
+# settings.json（Blender MCP 設定）はコミットする。
+.gemini/skills/
+
 # ===== OS / エディタ =====
 .DS_Store
 Thumbs.db
@@ -23,3 +28,5 @@ env/
 *.blend1
 *.blend2
 *.blend@
+*.skill
+

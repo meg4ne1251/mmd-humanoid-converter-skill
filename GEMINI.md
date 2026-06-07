@@ -1,17 +1,40 @@
-# CLAUDE.md — mmd-humanoid-converter-skill
+# GEMINI.md — mmd-humanoid-converter-skill
 
 ## このプロジェクトは何か
 
-MMD（MikuMikuDance）モデルを **Humanoid 形式モデルへ変換する作業を、手動ではなく Claude + Blender MCP で（半）自動化する Claude スキル** を制作するプロジェクト。
+MMD（MikuMikuDance）モデルを **Humanoid 形式モデルへ変換する作業を、手動ではなく AI アシスタント + Blender MCP で（半）自動化するスキル** を制作するプロジェクト。
 
-これまで `docs-not-commit/` に書かれた手順を人間が手動で Blender 上で実行していた。その一連の作業を、Claude が Blender MCP を通じて bpy コードを実行することで代行できるようにするのが目標。
+これまで `docs-not-commit/` に書かれた手順を人間が手動で Blender 上で実行していた。その一連の作業を、Gemini が Blender MCP を通じて bpy コードを実行することで代行できるようにするのが目標。
 
 ## 配布方針（重要）
 
 - このリポジトリは **Public リポジトリとして配布** する。
 - 最終形は **AI スキルとして単一スキルリポジトリ** で配布する（リポジトリ＝1スキル）。**リポジトリ名は `mmd-humanoid-converter-skill`、スキル名（`SKILL.md` の `name:`）は `mmd-humanoid-converter`** とする（リポジトリ名にだけ `-skill` を付ける）。
 - つまりルートに `SKILL.md` を置き、リポジトリをクローンすればそのままスキルとして使える構成を目指す。
-- **Claude と Gemini の両方に対応** する。`CLAUDE.md`（このファイル）と `GEMINI.md`（Gemini 向け）の両方を配置。
+- **Claude と Gemini の両方に対応** する。`CLAUDE.md`（Claude 向け）と `GEMINI.md`（Gemini 向け・このファイル）の両方を配置。
+
+## Gemini でのスキル利用（開発者向け）
+
+Gemini CLI でこのスキルを使う場合の導入方法：
+
+```bash
+# プロジェクトの .gemini/skills/ にクローン
+mkdir -p .gemini/skills
+git clone https://github.com/meg4ne1251/mmd-humanoid-converter-skill.git \
+  .gemini/skills/mmd-humanoid-converter
+
+# Blender MCP サーバーの設定（.gemini/settings.json に追記）
+# {
+#   "mcpServers": {
+#     "blender": {
+#       "command": "uvx",
+#       "args": ["blender-mcp"]
+#     }
+#   }
+# }
+```
+
+**開発時の構成**: このリポジトリを直接開発する場合は `.gemini/skills/mmd-humanoid-converter/` にルートの `SKILL.md` と `references/` へのシンボリックリンクが置かれている。こうすることで、ルートのファイルを編集するだけで Gemini スキルにも反映される。
 
 ## 絶対に守ること
 
@@ -67,24 +90,26 @@ Bones
 - **MMD 変換に「絶対」は存在しない。** モデルごとに形式・構造が異なるため、手順は一例。全モデルの変換成功は保証されない。
 - スキルは「全自動で完璧に変換」ではなく、「定型作業を代行し、判断が要る箇所はユーザーに確認・提示する」方針が現実的。
 
-## Blender MCP メモ
+## Blender MCP メモ（Gemini 向け）
 
-- `mcp__Blender__*` ツールでシーン操作。`execute_blender_code` は最終手段で、専用ツールを優先。
+- Blender MCP のツールでシーン操作する。MCP サーバー名は `blender`（`.gemini/settings.json` で定義）。
+- `execute_blender_code` は最終手段で、`get_objects_summary` / `get_object_detail_summary` / `search_api_docs` などの専用ツールを優先する。
 - 操作前にモード（Object/Edit/Pose）・アクティブオブジェクト・選択状態を明示的に設定する。bmesh は edit mode で使い flush する。変更後は depsgraph を更新してから計算値を読む。
+- **`execute_blender_code` 経由のコードは通常の UI コンテキストを持たない**ため、多くの `bpy.ops` オペレーターが context エラーで失敗する。データレベル API を優先し、オペレーターが必要な場合は VIEW_3D コンテキストオーバーライドを使う（詳細は `SKILL.md` の「Running operators through the Blender MCP」セクション参照）。
 
 ## リポジトリ構成
 
 ```
 / (リポジトリルート = スキル本体)
-├─ SKILL.md          # スキル定義（変換フローのオーケストレーション）
-├─ references/        # ステップ別の詳細（bpy コード＋落とし穴）
-├─ CLAUDE.md          # このファイル（Claude 向け開発メモ）
-├─ GEMINI.md          # Gemini 向け開発メモ
-├─ README.md          # 公開用説明
-├─ LICENSE            # MIT ライセンス
+├─ SKILL.md           # スキル定義（変換フローのオーケストレーション）
+├─ references/         # ステップ別の詳細（bpy コード＋落とし穴）
+├─ CLAUDE.md           # Claude 向けプロジェクトメモ
+├─ GEMINI.md           # Gemini 向けプロジェクトメモ（このファイル）
+├─ README.md           # 公開用説明
+├─ LICENSE             # MIT ライセンス
 ├─ .gitignore
 ├─ .gemini/            # Gemini CLI 設定（開発用）
 │  ├─ settings.json    #   Blender MCP サーバー設定
 │  └─ skills/          #   ルートへのシンボリックリンク（.gitignore 対象）
-└─ docs-not-commit/   # 参考資料（コミットしない）
+└─ docs-not-commit/    # 参考資料（コミットしない）
 ```
