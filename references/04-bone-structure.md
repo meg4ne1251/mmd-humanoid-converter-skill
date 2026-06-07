@@ -117,6 +117,27 @@ bpy.ops.object.mode_set(mode='OBJECT')
 
 ---
 
+## 3b-2 — Collapse shoulder helper bones (肩P / 肩C)
+
+**Problem (verified live):** many MMD arms insert two weight-free helper bones into the shoulder chain — `肩P` (shoulder-parent) above the real shoulder and `肩C` (shoulder-cancel) below it — giving `Spine2 → 肩P → 肩 → 肩C → 腕`. VLL has a single `Shoulder`, which is the real weighted `肩`.
+
+**Procedure:**
+1. Confirm `肩P` and `肩C` carry **no weight** (they normally don't; the weighted bone is `肩`).
+2. Re-link the chain so the real bones connect directly: `肩.parent = 上半身2 (Spine2)` and `腕.parent = 肩`.
+3. Delete `肩P` / `肩C` (both sides) and drop their now-empty vertex groups.
+4. `肩` later renames to `Shoulder_L/_R` in Step 5.
+
+```python
+for s in [".L", ".R"]:
+    kata, ude, spine2 = eb.get(f"肩{s}"), eb.get(f"腕{s}"), eb.get("上半身2")
+    if kata and spine2: kata.parent = spine2
+    if ude and kata:    ude.parent  = kata
+    for hb in [eb.get(f"肩P{s}"), eb.get(f"肩C{s}")]:
+        if hb: eb.remove(hb)
+```
+
+---
+
 ## 3c — Remove IK/FK control bones
 
 **Problem:** ankles/toes (and often wrists) have IK/FK control bones — usually parented as a **separate group** off the upper/lower body chain rather than inside the limb. VLL doesn't use them.

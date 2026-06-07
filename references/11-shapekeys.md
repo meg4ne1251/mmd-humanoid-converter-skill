@@ -1,13 +1,11 @@
 # Step 9 — Rename face shape keys
 
-MMD face shape keys for the vowels use Japanese kana: `あ い う え お`. Rename them to the Latin convention used downstream: **`a i u e p`**.
-
-Note the last one is **`p`**, not `o` — that's the intended mapping (matches the downstream lip-sync naming). Don't "correct" it to `o`.
+MMD face shape keys for the vowels use Japanese kana: `あ い う え お`. Rename them to the Latin convention used downstream: **`a i u e o`** — a straight phonetic mapping (お → `o`).
 
 ```python
 import bpy
 
-KANA_MAP = {"あ": "a", "い": "i", "う": "u", "え": "e", "お": "p"}
+KANA_MAP = {"あ": "a", "い": "i", "う": "u", "え": "e", "お": "o"}
 
 for o in bpy.data.objects:
     if o.type != 'MESH' or not o.data.shape_keys:

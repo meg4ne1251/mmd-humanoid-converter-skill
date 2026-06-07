@@ -1,6 +1,43 @@
 # Step 7 — Convert materials to Principled BSDF
 
-MMD models import with a toon-shader node setup (`Emission` + `BSDF_Transparent` + `MIX_SHADER` + `LIGHT_PATH`, plus `MATH`/`FRAME` helpers). For a standard pipeline, replace it with a single **Principled BSDF**, while **reusing** the existing image/mapping/UV nodes.
+MMD models import with one of **two different node setups** depending on the MMD Tools version — check which one you have before doing anything:
+
+- **Old layout (toon mix):** `Emission` + `BSDF_Transparent` + `MIX_SHADER` + `LIGHT_PATH`, plus `MATH`/`FRAME` helpers. Replace with a single Principled BSDF (the `MIX_SHADER`-based procedure below).
+- **New layout (mmd_shader node group), verified on a live import:** the material already contains a `BSDF_PRINCIPLED` node **but it is a dummy** — `Output.Surface` is fed by an `mmd_shader` node *group*, and the Principled's `Base Color` is left at its default value (texture not connected). `mmd_base_tex` (a `TEX_IMAGE`, Color+Alpha, fed by an `mmd_tex_uv` group) is the real texture. **If you export this as-is, downstream tools (Unity/MotionBuilder) ignore `mmd_shader` and the textures are lost.** You must rewire: `mmd_base_tex.Color → Principled.Base Color`, `.Alpha → Principled.Alpha` (if 4-channel), and `Principled.BSDF → Output.Surface` (replacing the group). The `MIX_SHADER` guard below would *skip* these materials and silently leave them broken — detect the new layout by `Output.Surface` not being driven by the Principled node.
+
+For a standard pipeline, the goal in both cases is a single **Principled BSDF** driving the output, while **reusing** the existing image/mapping/UV nodes.
+
+## New-layout rewire (mmd_shader group → Principled)
+
+```python
+import bpy
+for m in {s.material for o in bpy.data.objects if o.type=='MESH' for s in o.material_slots if s.material}:
+    if not m.use_nodes: continue
+    nt = m.node_tree; nodes = nt.nodes; links = nt.links
+    out = next((n for n in nodes if n.type=='OUTPUT_MATERIAL'), None)
+    p   = next((n for n in nodes if n.type=='BSDF_PRINCIPLED'), None)
+    base = next((n for n in nodes if n.type=='TEX_IMAGE' and 'base' in n.name.lower()), None) \
+           or next((n for n in nodes if n.type=='TEX_IMAGE'), None)
+    if not out or not p: continue
+    # already correct?
+    if out.inputs['Surface'].is_linked and out.inputs['Surface'].links[0].from_node==p \
+       and p.inputs['Base Color'].is_linked:
+        continue
+    if base:
+        links.new(base.outputs['Color'], p.inputs['Base Color'])
+        if base.image and base.image.channels == 4:
+            links.new(base.outputs['Alpha'], p.inputs['Alpha'])
+    links.new(p.outputs['BSDF'], out.inputs['Surface'])   # replaces mmd_shader group
+    spec = p.inputs.get('Specular IOR Level') or p.inputs.get('Specular')
+    if spec: spec.default_value = 0.0
+    p.inputs['Roughness'].default_value = 0.8
+```
+
+After rewiring, switch a viewport to Material Preview and render — textures (skin, hair, clothes) should display correctly. The original MMD layout (`MIX_SHADER`) is handled by the procedure further down.
+
+---
+
+## Old layout: toon mix-shader replacement
 
 ## The cardinal rule
 

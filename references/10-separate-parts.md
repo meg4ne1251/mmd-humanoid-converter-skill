@@ -67,7 +67,10 @@ For manual selection, the artist's `L` (linked-select under cursor) is the inter
 
 ## Notes
 
-- `separate()` runs in **Edit Mode** on the selected object — deselect-all first, then select only the source.
-- The original object stays in `selected_objects` after separation; bucket by material to route it correctly.
+- `separate()` runs in **Edit Mode** on the selected object — deselect-all first, then select only the source. Through the Blender MCP, wrap the `mode_set`/`separate`/`join` operators in a VIEW_3D context override (see SKILL.md).
+- **Single-user the mesh data first** (`if mesh.data.users>1: mesh.data = mesh.data.copy()`) — MMD imports are multi-user and edit-mode operators can misbehave on shared data.
+- The original object stays in `selected_objects` after separation; bucket by material to route it correctly. (After separating, it's simplest to re-bucket **all** mesh objects in the scene rather than relying on the selection.)
 - Armature modifier and vertex groups carry over to every separated object automatically.
+- **Shape keys are copied to every fragment.** After separating by material, the face's vowel shape keys (`a i u e o`) end up on Body/Hair/Clothes/Acce too — harmless for export, but if you want lip-sync keys only on the face mesh, delete the shape keys from the non-face objects after joining (`while obj.data.shape_keys: obj.shape_key_clear()`).
 - After `join()`, the active object is the merged result.
+- **Real-example grouping** (43 materials → 5 parts, all classified cleanly): Face = `eye*`/`face*`/`namida`/`cheek*`/`morph_*`; Hair = `hair*`/`ahoge`; Body = `body`/`leg`/`hand`/`arm`/`waki`; Clothes = `tops*`/`bottoms*`/`socks`/`shoes`/`ribbon`/`tasuki*`; Acce = `bag`/`acce`/`weapon`/`ball`/`metal`. Names vary per model — always build the map from the real slots.
