@@ -1,56 +1,83 @@
 # mmd-humanoid-converter
 
-A **Claude skill** that converts an MMD (MikuMikuDance) `.pmx` / `.pmd` model into a clean **Humanoid-rig** model inside Blender, driving Blender through the **Blender MCP**.
+MMD（MikuMikuDance）の `.pmx` / `.pmd` モデルを、Blender 上できれいな **Humanoid リグ（VLL 規格）** に変換する **Claude スキル** です。Claude が **Blender MCP** を通じて Blender を操作し、変換作業を代行します。
 
-It automates a workflow that was previously done entirely by hand: stripping MMD-specific bones (twist / IK / center / group bones), transferring split vertex weights onto the real limb bones, flipping the downward MMD waist into an upward Humanoid `Hips`, renaming bones to the Humanoid convention, separating the mesh into parts, and renaming the Japanese vowel shape keys.
+MMD 特有のボーン（ねじれ／IK／センター／グループボーンなど）の削除、複数ボーンに分割されたウェイトを本来の手足ボーンへ集約する転送、下向きの MMD 腰ボーンを上向きの Humanoid `Hips` へ作り直す処理、Humanoid 命名規則へのリネーム、メッシュのパーツ分離、日本語の母音シェイプキーのリネーム、までを扱います。
 
-> ⚠️ **MMD conversion has no "always."** Every model is structured and named differently, so this skill is **semi-automatic**: it does the rote work and asks you to confirm the judgment calls (especially destructive bone/weight operations). It does not guarantee a perfect, hands-off conversion of every model.
+> ⚠️ **MMD 変換に「絶対」は存在しません。** モデルごとに構造も命名もバラバラなため、このスキルは **半自動** です。定型作業は代行しますが、判断が必要な箇所（特にボーン・ウェイトの破壊的操作）は必ずユーザーに確認します。すべてのモデルを完璧にノータッチで変換できることは保証しません。
 
-## What it does
+## このスキルが行うこと
 
-Target rig (VLL Humanoid standard):
+変換のゴールとなるリグ（VLL Humanoid 規格）の階層:
 
 ```
 Reference → Parent → Hips
   Hips ├─ UpLeg_L → Leg_L → Foot_L → Toe_L
        ├─ UpLeg_R → Leg_R → Foot_R → Toe_R
        └─ Spine1 → Spine2 → Spine3
-              ├─ Shoulder_L → UpArm_L → ForeArm_L → Hand_L (→ fingers)
-              ├─ Shoulder_R → UpArm_R → ForeArm_R → Hand_R (→ fingers)
+              ├─ Shoulder_L → UpArm_L → ForeArm_L → Hand_L (→ 指)
+              ├─ Shoulder_R → UpArm_R → ForeArm_R → Hand_R (→ 指)
               └─ Neck → Head
 ```
 
-Workflow steps: inspect → delete junk objects → clear bone constraints → restructure bones (waist/spine, twist & IK removal with weight transfer) → delete `_shadow`/`_dummy` → rename to Humanoid → fix bone display → convert materials to Principled BSDF → separate parts → rename shape keys → optional finishing → FBX export.
+腰（Hips）を起点として、すべてのボーンが**上方向**へ伸びる構造です。対して生の MMD リグは、腰が**下向き**（センター／グループ／センター先など）で、腕のウェイトを複数本に分割する上向きの「ねじれ／捩り」補助ボーンや、手首・足首まわりに独立した IK/FK 制御ボーンを持ちます。変換とは、この MMD リグを上の構造へ作り変える作業です。
 
-## Requirements
+### 変換フローの概要
 
-- **Blender** (4.x or 5.x; some node socket names differ — the skill handles both) with the **[MMD Tools](https://extensions.blender.org/add-ons/mmd-tools/)** addon installed.
-- The target MMD model already **imported** into Blender (File → Import → MikuMikuDance Model).
-- A **Blender MCP** server running and connected to your Claude client.
-- A Claude client that supports skills (e.g. Claude Code / Cowork).
+1. シーンの調査（オブジェクト・アーマチュア・ボーン・ウェイト・マテリアルの実状態を読む）
+2. 不要オブジェクトの削除（当たり判定・物理オブジェクトなど。メッシュとアーマチュアのみ残す）
+3. ボーンコンストレイントの解除
+4. ボーン構造の再構築（**最重要**。腰／背骨の作り直し、ねじれ・IK ボーンの削除とウェイト転送）
+5. `_shadow` / `_dummy` ボーンの削除
+6. Humanoid 命名規則へのリネーム
+7. ボーン表示・テールの整形（仕上げ）
+8. マテリアルを Principled BSDF へ変換（任意）
+9. メッシュのパーツ分離
+10. シェイプキーのリネーム（`あ い う え お` → `a i u e o`）
+11. 仕上げと FBX 出力（→ MotionBuilder でキャラクタライズ）
 
-## Install
+各ステップの具体的な bpy コードと、実機検証で判明した落とし穴は `references/` 配下の個別ファイルにまとめてあります。
 
-This repository **is** the skill (single-skill repo). Clone it into your skills directory:
+## 前提条件
+
+このスキルを使うには、事前に次の環境が整っている必要があります。
+
+- **Blender 4.x または 5.x** がインストールされていること（バージョンによりノードのソケット名などが異なりますが、スキルは両対応です）。
+- Blender に **[MMD Tools](https://extensions.blender.org/add-ons/mmd-tools/)** アドオンが導入済みであること。
+- 変換対象の MMD モデルが、MMD Tools 経由ですでに **Blender にインポート済み**であること（File → Import → MikuMikuDance Model）。**インポート自体はこのスキルの対象外**なので、シーンに何もない場合はまずユーザー側でインポートしてください。
+- **Blender MCP サーバー**が起動し、お使いの Claude クライアントに接続されていること。これがないとスキルは動作しません。
+- **スキルに対応した Claude クライアント**（Claude Code / Cowork など）。
+
+## 導入方法
+
+このリポジトリ**そのもの**が 1 つのスキルです（単一スキルリポジトリ）。スキルを読み込むディレクトリにクローンしてください。
 
 ```bash
-git clone <this-repo-url> mmd-humanoid-converter
+git clone git@github.com:meg4ne1251/mmd-humanoid-converter-skill.git
 ```
 
-Then make the folder available to Claude as a skill (place it where your client loads skills from). Once loaded, the skill triggers when you ask Claude to convert / clean up / humanoid-ify an MMD model in Blender.
+その上で、フォルダを Claude にスキルとして認識させます（お使いのクライアントがスキルを読み込む場所に配置）。読み込まれると、Blender 上の MMD モデルを変換・整理・Humanoid 化するよう依頼したときにスキルが起動します。
 
-## Usage
+## 使い方
 
-1. In Blender: import your `.pmx`/`.pmd` with MMD Tools and start the Blender MCP server.
-2. In Claude: e.g. *"I imported an MMD model in Blender — convert it to our Humanoid rig."*
-3. Claude inspects the scene, proposes a plan, and works through the steps, pausing for confirmation before destructive operations.
+1. **Blender 側**: MMD Tools で `.pmx` / `.pmd` をインポートし、Blender MCP サーバーを起動して Claude クライアントに接続します。
+2. **Claude 側**: 例えば「Blender に MMD モデルをインポートしたので、Humanoid リグに変換して」のように依頼します。
+3. Claude がシーンを調査し、変換プランを提示したうえで各ステップを進めます。**破壊的な操作の前には必ず確認を取って**から実行します。
 
-## Layout
+変換は一気通貫で完璧に終わるものではなく、モデルによっては手作業の補正が必要になります。各削除バッチのあとはポーズテストでメッシュがリグに追従するか確認しながら進めるのが安全です。
+
+## 注意事項
+
+- **「決め打ち」をしないこと。** モデルごとに形式・命名・階層が違うため、ボーン名や構造を仮定してはいけません。必ずシーンの実状態を読んでから判断します。
+- **変換後は必ずリグの変形を確認すること。** ポーズテストで破綻がないかチェックし、モデルによっては手動補正を見込んでください。
+- **元 MMD モデルの配布規約・ライセンスを尊重すること。** 変換したアセットを利用する際は、元モデルの利用条件に従ってください。
+
+## リポジトリ構成
 
 ```
 .
-├── SKILL.md          # the skill: workflow orchestrator
-├── references/       # per-step detail (bpy code + pitfalls)
+├── SKILL.md          # スキル本体（変換フローのオーケストレーション）
+├── references/       # ステップ別の詳細（bpy コード＋落とし穴）
 │   ├── 01-inspect.md
 │   ├── 02-cleanup-objects.md
 │   ├── 03-constraints.md
@@ -65,10 +92,10 @@ Then make the folder available to Claude as a skill (place it where your client 
 │   ├── 12-finishing-export.md
 │   ├── bone-naming.md
 │   └── material-bsdf.md
-├── CLAUDE.md         # project/dev notes
+├── CLAUDE.md         # プロジェクト／開発メモ
 └── README.md
 ```
 
-## License & disclaimer
+## ライセンス・免責
 
-Provided as-is. MMD model conversion results vary by model; verify rig deformation after conversion and expect some models to need manual touch-up. Respect the original MMD model's distribution terms and license when using converted assets.
+現状のまま（as-is）で提供します。MMD モデルの変換結果はモデルによって異なります。変換後は必ずリグの変形を検証し、一部のモデルでは手作業の補正が必要になることを想定してください。変換したアセットを利用する際は、元 MMD モデルの配布規約・ライセンスを尊重してください。

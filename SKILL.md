@@ -109,7 +109,7 @@ MMD toon shaders (Emission + Transparent + Mix + LightPath) → Principled BSDF,
 Split face/hair/body/clothes/accessories into separate objects. Material-based separation works when materials map 1:1 to parts; otherwise fall back to loose/selected separation. Do this **last**, after rig work. → `references/10-separate-parts.md`
 
 ### Step 9 — Rename face shape keys
-Rename the Japanese vowel shape keys `あ い う え お` → `a i u e p`. → `references/11-shapekeys.md`
+Rename the Japanese vowel shape keys `あ い う え お` → `a i u e o`. → `references/11-shapekeys.md`
 
 ### Step 10 — Optional finishing & export
 Delete leaf/tip bones, tris→quads, build hidden body mesh under clothes if needed. Then export FBX → characterize in MotionBuilder. → `references/12-finishing-export.md`
