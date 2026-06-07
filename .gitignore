@@ -1,0 +1,25 @@
+# ===== 絶対にコミットしないドキュメント類 =====
+# 元の手順記事・参考画像・動画（著作物/容量大）。公開リポジトリに含めない。
+docs-not-commit/
+docs-note-commit/
+
+# ===== OS / エディタ =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+.idea/
+.vscode/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ===== Blender 一時/バックアップ =====
+*.blend1
+*.blend2
+*.blend@
