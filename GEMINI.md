@@ -59,7 +59,7 @@ git clone https://github.com/meg4ne1251/mmd-humanoid-converter-skill.git \
 8. **マテリアルを Principled BSDF へ変換（任意）** — MMD トゥーンシェーダ（旧: Emission+Transparent+Mix / 新: `mmd_shader` ノードグループ）を Principled BSDF へ再配線。テクスチャ/UV ノードは再利用し、`nodes.clear()` は使わない。エクスポート時にテクスチャを失わないための処理。
 9. **パーツ分離** — 顔/髪/体/服/装飾などでメッシュを別オブジェクトに分離（最後に実施）。
 10. **シェイプキーのリネーム** — `あ い う え お` → `a i u e o`。
-11. **任意の仕上げ** — 末端ボーン削除、三角面→四角面、服で隠れる素体メッシュの作成。
+11. **任意の仕上げ** — 先端ボーン削除（名前に「先」を含むボーン。ウェイト確認後に Edit Mode で削除）、三角面→四角面、服で隠れる素体メッシュの作成。
 12. 完了後 FBX 出力 → MotionBuilder でキャラクタライズ。
 
 ### ウェイト転送について

@@ -34,7 +34,7 @@ Reference → Parent → Hips
 8. マテリアルを Principled BSDF へ変換（任意）
 9. メッシュのパーツ分離
 10. シェイプキーのリネーム（`あ い う え お` → `a i u e o`）
-11. 仕上げと FBX 出力（→ MotionBuilder でキャラクタライズ）
+11. 仕上げと FBX 出力（先端ボーン削除〔名前に「先」を含むボーン〕、→ MotionBuilder でキャラクタライズ）
 
 各ステップの具体的な bpy コードと、実機検証で判明した落とし穴は `references/` 配下の個別ファイルにまとめてあります。
 

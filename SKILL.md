@@ -142,7 +142,12 @@ Split face/hair/body/clothes/accessories into separate objects. Material-based s
 Rename the Japanese vowel shape keys `あ い う え お` → `a i u e o`. → `references/11-shapekeys.md`
 
 ### Step 10 — Optional finishing & export
-Delete leaf/tip bones, tris→quads, build hidden body mesh under clothes if needed. Then export FBX → characterize in MotionBuilder. → `references/12-finishing-export.md`
+Polish the rig, then export. None of these sub-steps are required — do them if the user wants them.
+
+- **10a. Delete tip bones (先端ボーン).** Find all bones whose name contains `先`, verify actual per-vertex weights are zero, then delete in Edit Mode. If any carry weight, stop and ask before proceeding. → `references/12-finishing-export.md`
+- **10b. Tris → quads.** Only if the user explicitly asks.
+- **10c. Hidden body under clothes.** MMD models typically delete body mesh covered by clothing. This is manual modeling work — flag it to the user rather than attempting automation.
+- **10d. FBX export** → characterize in MotionBuilder. → `references/12-finishing-export.md`
 
 ## Weight transfer — the heart of the cleanup
 
