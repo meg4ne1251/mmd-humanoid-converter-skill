@@ -18,7 +18,7 @@ This is the core of the conversion and the part most likely to need human judgme
 
 ## 3a — Fix the waist & spine
 
-**Problem:** the MMD waist (センター / グループ / センター先 and a 下半身/上半身 split) points **downward**, the opposite of the VLL Hips which roots the body and grows upward.
+**Problem:** the MMD waist (センター / グループ / センター先 and a 下半身/上半身 split) points **downward**, the opposite of the Humanoid Hips which roots the body and grows upward.
 
 **Plan (confirm with user before editing):**
 - Identify which bone should become **Hips** (usually the 下半身 root / 腰, the pelvis the legs hang from).
@@ -60,7 +60,7 @@ bpy.ops.object.mode_set(mode='OBJECT')
 
 ### Root bone at the model origin
 
-After re-rooting, the topmost bone is usually the pelvis/Hips (e.g. `下半身`), whose head sits at hip height (`head.z ≈ 0.9`), not at the model origin. The VLL hierarchy expects a `Reference`/`Parent` above Hips, and it is desirable for **the root bone's head to sit at (or near) the model origin**.
+After re-rooting, the topmost bone is usually the pelvis/Hips (e.g. `下半身`), whose head sits at hip height (`head.z ≈ 0.9`), not at the model origin. The Humanoid hierarchy expects a `Reference`/`Parent` above Hips, and it is desirable for **the root bone's head to sit at (or near) the model origin**.
 
 **Do not move a weighted bone's head to the origin** — the pelvis carries thousands of weighted verts, and shifting its rest-pose head distorts that deformation. Instead, **add a new, weight-free root bone whose head is at the origin** and parent the existing root (Hips) under it. This satisfies the requirement with **zero weight movement**:
 
@@ -119,7 +119,7 @@ bpy.ops.object.mode_set(mode='OBJECT')
 
 ## 3b-2 — Collapse shoulder helper bones (肩P / 肩C)
 
-**Problem (verified live):** many MMD arms insert two weight-free helper bones into the shoulder chain — `肩P` (shoulder-parent) above the real shoulder and `肩C` (shoulder-cancel) below it — giving `Spine2 → 肩P → 肩 → 肩C → 腕`. VLL has a single `Shoulder`, which is the real weighted `肩`.
+**Problem (verified live):** many MMD arms insert two weight-free helper bones into the shoulder chain — `肩P` (shoulder-parent) above the real shoulder and `肩C` (shoulder-cancel) below it — giving `Spine2 → 肩P → 肩 → 肩C → 腕`. The Humanoid rig has a single `Shoulder`, which is the real weighted `肩`.
 
 **Procedure:**
 1. Confirm `肩P` and `肩C` carry **no weight** (they normally don't; the weighted bone is `肩`).
@@ -140,7 +140,7 @@ for s in [".L", ".R"]:
 
 ## 3c — Remove IK/FK control bones
 
-**Problem:** ankles/toes (and often wrists) have IK/FK control bones — usually parented as a **separate group** off the upper/lower body chain rather than inside the limb. VLL doesn't use them.
+**Problem:** ankles/toes (and often wrists) have IK/FK control bones — usually parented as a **separate group** off the upper/lower body chain rather than inside the limb. The Humanoid rig doesn't use them.
 
 **Procedure:**
 - Identify the IK group (足ＩＫ, つま先ＩＫ, and any 手ＩＫ if present), confirm via the bone tree that they sit apart from the limb chain.
@@ -154,7 +154,7 @@ Pose-test the legs/feet afterward — IK removal is a common place for surprises
 
 ## 3d — Other stray bones
 
-Anything left that is **not** in the target hierarchy is a deletion candidate — *unless* it's a physics/jiggle bone you want to keep (skirt スカート, ribbon リボン, shoelace 靴紐, hair 髪). Rule of thumb from the original workflow: *not in the VLL hierarchy AND not a jiggle/cloth bone → delete, after confirming no weight.* When unsure, ask.
+Anything left that is **not** in the target hierarchy is a deletion candidate — *unless* it's a physics/jiggle bone you want to keep (skirt スカート, ribbon リボン, shoelace 靴紐, hair 髪). Rule of thumb from the original workflow: *not in the Humanoid hierarchy AND not a jiggle/cloth bone → delete, after confirming no weight.* When unsure, ask.
 
 ---
 

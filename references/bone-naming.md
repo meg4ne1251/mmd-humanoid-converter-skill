@@ -1,4 +1,4 @@
-# VLL Humanoid bone naming
+# Humanoid bone naming
 
 The target naming convention. Read this before any renaming (Step 5). `_L` / `_R` suffixes pair left and right. Keep spine numbering **contiguous** (Spine1, Spine2, Spine3 — never skip a number).
 
@@ -62,11 +62,11 @@ These aren't part of the Humanoid standard — keep them, preserve L/R, and use 
 e.g. Skirt_1_L.1, Blazer_2_R.2, Hair_Back_1_L
 ```
 
-## Common MMD → VLL name mapping (verify per model — names vary!)
+## Common MMD → Humanoid name mapping (verify per model — names vary!)
 
 This is a *starting* guide, not a hard-coded truth. Always read the real bone names from the scene first.
 
-| MMD (typical) | VLL |
+| MMD (typical) | Humanoid |
 |---|---|
 | 全ての親 | `Parent` (or root → `Reference`/`Parent`) |
 | 下半身 / 腰 | `Hips` |

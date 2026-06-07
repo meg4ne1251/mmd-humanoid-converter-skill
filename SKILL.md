@@ -5,7 +5,7 @@ description: Convert an MMD (MikuMikuDance) PMX/PMD model into a clean Humanoid-
 
 # MMD → Humanoid Converter
 
-This skill drives Blender (through the Blender MCP) to convert an MMD model — imported via the **MMD Tools** addon — into a clean Humanoid rig that matches the VLL standard bone hierarchy. It is the automation of a workflow that used to be done by hand.
+This skill drives Blender (through the Blender MCP) to convert an MMD model — imported via the **MMD Tools** addon — into a clean Humanoid rig. It is the automation of a workflow that used to be done by hand.
 
 > **Validated end-to-end** on a real MMD model (a 260-bone きりたん variant, 43 materials) on Blender 5.x: full run from inspection through twist-bone weight transfer, IK/shoulder-helper removal, waist re-rooting, Humanoid rename, material rewire, part separation, and FBX export — pose-tested at each destructive step. The reference files carry the concrete pitfalls found during that run (multi-user mesh data, MCP operator-context failures, the `mmd_shader` node-group material layout, etc.). MMD conversion still "has no always" — treat the skill as semi-automatic, not guaranteed.
 
@@ -17,7 +17,7 @@ This skill is **semi-automatic by design.** Claude does the tedious, determinist
 
 ## Goal: the target hierarchy
 
-The end state is the VLL-standard Humanoid hierarchy. The waist (Hips) is the root of the body and everything grows **upward** from it:
+The end state is the Humanoid hierarchy. The waist (Hips) is the root of the body and everything grows **upward** from it:
 
 ```
 Reference → Parent → Hips
@@ -39,6 +39,7 @@ Before starting, confirm with the user (and verify in-scene where possible):
 
 1. **Blender is open with the Blender MCP addon connected.** This skill cannot work otherwise.
 2. **The MMD model is already imported** via the MMD Tools addon (File → Import → MikuMikuDance Model `.pmd/.pmx`). Importing the file itself is outside this skill — if nothing is in the scene, ask the user to import first. Note the Blender version (behavior differs between 4.x and 5.x; see `references/material-bsdf.md`).
+3. **Back up the .blend file before proceeding.** This workflow makes irreversible changes — bones are deleted, weights are merged, parenting is rebuilt. Remind the user to save a copy (File → Save Copy… or duplicate the file in Finder/Explorer) **before** you start Step 1. Do not proceed until they confirm the backup is done.
 
 If you need API details mid-task, prefer the dedicated Blender MCP tools (`get_objects_summary`, `get_object_detail_summary`, `search_api_docs`, etc.) and fall back to `execute_blender_code` only when no dedicated tool fits. Always set mode / active object / selection explicitly before operators, and update the depsgraph before reading computed values.
 
@@ -73,6 +74,35 @@ Also: `mode_set(mode='POSE')` only works when the **active object is the armatur
 ## The workflow
 
 Work through these in order. Each step has a dedicated reference file with the exact bpy patterns and the specific pitfalls discovered in real conversions — **read the linked reference before doing the step.** Mark progress and check in with the user at the destructive steps.
+
+### Mode selection — ask before Step 0
+
+Before doing anything, present the user with two modes and wait for their choice:
+
+```
+変換を開始します。モードを選んでください：
+
+A）ステップ実行モード（推奨）
+   各フェーズで削除・変更内容を確認してから進みます。初めてのモデルや
+   構造が複雑なモデルにはこちらを推奨します。
+
+B）一括実行モード
+   問題がなければ確認なしで全フェーズを連続実行します。
+   以下の場合のみ中断して報告します：
+   ・ウェイトが乗っている予想外のボーンが見つかったとき
+   ・ボーン名が想定と大きく異なり自動マッピングできないとき
+   ・アーマチュアが複数あるなど構造が想定外のとき
+```
+
+**In step-by-step mode (A):** present the plan for each destructive operation (what will be deleted/moved/renamed, and why) and wait for confirmation before executing.
+
+**In batch mode (B):** execute each step without confirmation, but **always stop and report** when any of the following is true — then ask how to proceed before continuing:
+- A bone marked for deletion still carries vertex weights and no obvious transfer target exists.
+- Bone names don't match any expected MMD pattern, making automatic mapping ambiguous.
+- Multiple armatures are found in the scene.
+- Any step raises an unexpected error.
+
+In both modes, **always run Step 0 (scene inspection) first** and show the user a summary of what was found before touching anything.
 
 ### Step 0 — Inspect the scene
 Before anything, build a picture of what you're working with: list objects, find the armature(s), dump the bone tree, list vertex groups per mesh, list material slots, check which bone collections are hidden. → `references/01-inspect.md`
