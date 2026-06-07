@@ -2,7 +2,9 @@
 
 **Goal:** keep only the mesh(es) and the armature. MMD imports bring in collision shapes, rigid bodies, and joint objects that are useless for a Humanoid rig and clutter every later step.
 
-These are often hidden — `Alt+H` (or `bpy.ops.object.hide_view_clear()`) reveals a swarm of small physics objects.
+These are often hidden — `Alt+H` reveals a swarm of small physics objects.
+
+> **Through the Blender MCP, `bpy.ops.object.hide_view_clear()` and `bpy.ops.object.delete()` fail with "context is incorrect."** Use data-level APIs instead: `obj.hide_set(False)` / `obj.hide_viewport = False` to unhide, and `bpy.data.objects.remove(obj, do_unlink=True)` to delete. See the "Running operators through the Blender MCP" note in SKILL.md. A working subtree-delete is shown at the bottom of this file.
 
 ## Identify before deleting (don't guess)
 
@@ -51,6 +53,37 @@ if parent:
     parent.select_set(True)
     bpy.ops.object.delete()
 ```
+
+## Context-safe subtree delete (works through the MCP)
+
+MMD imports group the junk under two empties — `rigidbodies` (an empty + ~hundreds of collision MESH children) and `joints` (hundreds of EMPTY children). Delete each whole subtree at the data level:
+
+```python
+import bpy
+
+# unhide everything at data level (hide_view_clear() fails via MCP)
+for o in bpy.data.objects:
+    o.hide_set(False); o.hide_viewport = False
+
+def delete_subtree(parent_name):
+    p = bpy.data.objects.get(parent_name)
+    if not p:
+        return 0
+    nodes = []
+    def collect(o):
+        nodes.append(o)
+        for c in o.children:
+            collect(c)
+    collect(p)
+    for o in nodes:
+        bpy.data.objects.remove(o, do_unlink=True)   # object.delete() fails via MCP
+    return len(nodes)
+
+print("deleted rigidbodies:", delete_subtree("rigidbodies"))
+print("deleted joints:",      delete_subtree("joints"))
+```
+
+Before deleting, sanity-check that no body mesh hides under `rigidbodies`: list `[o.name for o in bpy.data.objects if o.type=='MESH']` and confirm the real body mesh is **not** in the rigidbodies subtree.
 
 ## After
 

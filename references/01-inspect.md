@@ -6,7 +6,7 @@
 
 1. **Objects** — what's in the scene, which is the armature, which are meshes, which are junk (physics/collision).
 2. **Bone tree** — full parent→child hierarchy with each bone's head/tail, so you can spot the downward waist, twist bones, IK bones, and hidden collections.
-3. **Vertex groups per mesh** — these are the weight targets. Twist/IK bones that appear here carry weight and must be handled before deletion.
+3. **Vertex groups per mesh** — these are the weight targets. Twist/IK bones that appear here *may* carry weight and must be handled before deletion. **Important:** a bone having a same-named vertex group does **not** mean it actually carries weight — MMD models routinely have empty vertex groups (e.g. `足ＩＫ`, `腕捩` with 0 weighted verts). Always sum the actual weight, not just check for the group's existence, before deciding whether a bone needs weight transfer vs. plain deletion.
 4. **Material slots per mesh** — needed later for part separation.
 5. **Bone collections** — MMD hides `_shadow`/`_dummy` and sometimes other groups; note which are hidden.
 
@@ -54,6 +54,34 @@ for o in bpy.data.objects:
     if o.type == 'MESH':
         print(f"  [{o.name}] " + ", ".join(s.material.name if s.material else "<none>" for s in o.material_slots))
 ```
+
+## Measure real weight (not just group existence)
+
+Before treating any bone as "weighted," sum the actual weight on its vertex group. This is what tells twist bones (real weight → transfer first) apart from IK bones (often 0 weight → delete directly):
+
+```python
+import bpy
+mesh = next(o for o in bpy.data.objects if o.type == 'MESH')  # the body mesh
+vg = {g.name: g.index for g in mesh.vertex_groups}
+
+def real_weight(group_name):
+    """Return (weighted_vert_count, total_weight) for a vertex group, or None if absent."""
+    if group_name not in vg:
+        return None
+    idx = vg[group_name]
+    c = 0; w = 0.0
+    for v in mesh.data.vertices:
+        for g in v.groups:
+            if g.group == idx and g.weight > 0:
+                c += 1; w += g.weight
+    return (c, round(w, 2))
+
+# e.g. check suspected helper/IK bones before deciding transfer vs. delete
+for name in ["腕捩.L", "腕捩1.L", "手捩.L", "足ＩＫ.L", "つま先ＩＫ.L"]:
+    print(f"  {name}: {real_weight(name)}")
+```
+
+A result of `(0, 0.0)` means the group exists but holds no weight → the bone can be deleted directly (just drop the empty group too). A non-zero result means you must transfer the weight first (`references/05-weight-transfer.md`).
 
 ## What to look for in the output
 

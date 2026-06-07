@@ -50,6 +50,20 @@ bpy.ops.object.mode_set(mode='OBJECT')
 
 Use the Blender MCP `render_viewport_to_path` / `get_screenshot_of_window_as_image` tool to show the user the deformation. If a region of mesh lags behind (doesn't follow the bone), a weight wasn't transferred — undo the deletion and fix the weights first.
 
+> **MCP capture gotchas (verified live):**
+> - MMD scenes usually have **no camera**, so `render_viewport_to_path` fails with *"no camera"*. Capture the viewport with an OpenGL render instead (inside a VIEW_3D context override):
+>   ```python
+>   ctx = view3d_ctx()
+>   path = "/abs/path/posetest.png"
+>   bpy.context.scene.render.filepath = path
+>   bpy.context.scene.render.image_settings.file_format = 'PNG'
+>   with bpy.context.temp_override(**ctx):
+>       bpy.ops.render.opengl(write_still=True)
+>   ```
+> - To frame the model first: set Object Mode, select mesh+armature, then under the override call `view3d.view_axis(type='FRONT')` and `view3d.view_selected()`.
+> - `mmd_edge_scale` and `mmd_vertex_order` will always show up as "orphan" vertex groups (they're MMD render data, not bones). They're harmless — exclude them from the orphan check.
+> - To reset a pose without `pose.transforms_clear` (which fails via MCP), zero each pose bone's `location` / `rotation_euler` / `rotation_quaternion` / `scale` directly.
+
 ## When something's wrong
 
 - Region doesn't follow a bone you kept → a source weight wasn't merged onto it. Re-do the transfer (`references/05-weight-transfer.md`).

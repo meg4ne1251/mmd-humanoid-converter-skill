@@ -2,6 +2,8 @@
 
 This is the core of the conversion and the part most likely to need human judgment. The target is the hierarchy in SKILL.md. Work in **Edit Mode** for geometry/parenting (`edit_bones`); switch to **Pose Mode** to test deformation afterward.
 
+> **MCP context:** entering Edit Mode needs a VIEW_3D context override, and `mode_set(mode='POSE')` needs the armature to be the active object. See the "Running operators through the Blender MCP" note in SKILL.md. All Edit-Mode snippets below assume you wrapped `mode_set` with `temp_override(**view3d_ctx())`.
+
 > **Weight safety dominates this whole step.** Most bones you delete here (twist, IK, helpers) carry part of the limb's weight. **Always check weight and transfer it first** (see `references/05-weight-transfer.md`) before deleting. Deleting a weighted bone tears the mesh.
 
 ## Order of operations
@@ -55,6 +57,33 @@ for name in ["センター", "グループ", "センター先"]:
 
 bpy.ops.object.mode_set(mode='OBJECT')
 ```
+
+### Root bone at the model origin
+
+After re-rooting, the topmost bone is usually the pelvis/Hips (e.g. `下半身`), whose head sits at hip height (`head.z ≈ 0.9`), not at the model origin. The VLL hierarchy expects a `Reference`/`Parent` above Hips, and it is desirable for **the root bone's head to sit at (or near) the model origin**.
+
+**Do not move a weighted bone's head to the origin** — the pelvis carries thousands of weighted verts, and shifting its rest-pose head distorts that deformation. Instead, **add a new, weight-free root bone whose head is at the origin** and parent the existing root (Hips) under it. This satisfies the requirement with **zero weight movement**:
+
+```python
+import bpy
+arm = next(o for o in bpy.data.objects if o.type == 'ARMATURE')
+bpy.context.view_layer.objects.active = arm
+ctx = view3d_ctx()
+with bpy.context.temp_override(**ctx):
+    bpy.ops.object.mode_set(mode='EDIT')
+eb = arm.data.edit_bones
+
+old_root = next(b for b in eb if b.parent is None)   # e.g. 下半身 / Hips
+root = eb.new("Parent")            # weight-free; rename to your convention later
+root.head = (0.0, 0.0, 0.0)        # model origin
+root.tail = old_root.head.copy()   # point up at Hips so it reads cleanly
+old_root.parent = root
+
+with bpy.context.temp_override(**ctx):
+    bpy.ops.object.mode_set(mode='OBJECT')
+```
+
+If creating the origin root would instead require complex weight surgery (it shouldn't, since the new bone holds no weight), skip it — the user has said not to force it.
 
 > Note on `use_connect`: connecting a child to its parent forces the child's head onto the parent's tail. To keep heads in place, move the parent's tail to the child's head **first**, then set `use_connect = True` — and only do this when the parent has exactly one child. See `references/09-bone-display.md` for the safe pattern; for pure restructuring you usually don't need `use_connect` at all.
 

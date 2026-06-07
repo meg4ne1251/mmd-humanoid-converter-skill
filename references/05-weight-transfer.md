@@ -4,6 +4,11 @@ The single most important safety mechanism in this skill. Before deleting any we
 
 This is the bpy equivalent of the original hand-built addon: a temporary `VERTEX_WEIGHT_MIX` modifier copies weights from a source vertex group into a destination vertex group, then is applied and removed.
 
+> **Two real-world gotchas that will break the naive version (verified on a live MMD import):**
+>
+> 1. **Multi-user mesh data.** MMD imports very often leave the body mesh's data block with `users > 1` (e.g. `mesh.data.users == 20`). `modifier_apply` then fails with *"Modifiers cannot be applied to multi-user data."* You **must** single-user the mesh data first: `if mesh.data.users > 1: mesh.data = mesh.data.copy()`. Without this, weight transfer does not work at all. The function below does this automatically.
+> 2. **Apply-order warning.** The body mesh already carries an `mmd_armature` modifier, so the temporary `WT_TMP` is added *below* it and `modifier_apply` prints *"Applied modifier was not first, result may not be as expected."* This is **harmless** for `VERTEX_WEIGHT_MIX` (it rewrites a vertex group and does not depend on stack order). You can ignore the warning, or move `WT_TMP` to the top of the stack first if you want it gone.
+
 ## Modes
 
 - **SET (overwrite):** destination weight is replaced by source. Use when the destination has no meaningful existing weight there.
@@ -26,6 +31,10 @@ def transfer_weight(mesh_obj, src, dst, mode='ADD', delete_source=True):
         return False
     if dst not in mesh_obj.vertex_groups:
         mesh_obj.vertex_groups.new(name=dst)
+
+    # CRITICAL: single-user the mesh data or modifier_apply fails on MMD imports
+    if mesh_obj.data.users > 1:
+        mesh_obj.data = mesh_obj.data.copy()
 
     bpy.context.view_layer.objects.active = mesh_obj
     mod = mesh_obj.modifiers.new(name="WT_TMP", type='VERTEX_WEIGHT_MIX')

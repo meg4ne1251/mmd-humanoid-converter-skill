@@ -40,6 +40,34 @@ Before starting, confirm with the user (and verify in-scene where possible):
 
 If you need API details mid-task, prefer the dedicated Blender MCP tools (`get_objects_summary`, `get_object_detail_summary`, `search_api_docs`, etc.) and fall back to `execute_blender_code` only when no dedicated tool fits. Always set mode / active object / selection explicitly before operators, and update the depsgraph before reading computed values.
 
+### Running operators through the Blender MCP (read this — it bites every step)
+
+Code run via `execute_blender_code` does **not** have a normal UI context, so many `bpy.ops` operators fail with *"context is incorrect"* or *"poll() failed"* — confirmed on Blender 5.x with `hide_view_clear`, `object.delete`, `object.mode_set`, `object.select_all`, `view3d.*`, `render.opengl`, etc. Two reliable workarounds:
+
+1. **Prefer data-level APIs over operators** wherever one exists — they need no context:
+   - hide/unhide: `obj.hide_set(False)` / `obj.hide_viewport = False` (not `hide_view_clear`)
+   - delete object + subtree: `bpy.data.objects.remove(obj, do_unlink=True)` (not `object.delete`)
+   - clear pose: set `pb.location/rotation_euler/rotation_quaternion/scale` directly (not `pose.transforms_clear`)
+   - pose-bone constraints are editable straight from Object Mode via `arm.pose.bones[*].constraints` — no need to enter Pose Mode at all.
+2. **When you truly need an operator** (e.g. `mode_set` to EDIT for `edit_bones`, or `render.opengl`), wrap it in a VIEW_3D context override:
+
+```python
+def view3d_ctx():
+    for win in bpy.context.window_manager.windows:
+        for area in win.screen.areas:
+            if area.type == 'VIEW_3D':
+                for region in area.regions:
+                    if region.type == 'WINDOW':
+                        return {'window': win, 'area': area, 'region': region, 'scene': bpy.context.scene}
+    return None
+
+ctx = view3d_ctx()
+with bpy.context.temp_override(**ctx):
+    bpy.ops.object.mode_set(mode='EDIT')
+```
+
+Also: `mode_set(mode='POSE')` only works when the **active object is the armature**. If a mesh is active you'll get *enum "POSE" not found*. Set `bpy.context.view_layer.objects.active = arm` first. And there is usually **no camera** in an MMD scene, so `render_viewport_to_path` fails — use `bpy.ops.render.opengl(write_still=True)` (inside the context override) to capture a viewport image instead.
+
 ## The workflow
 
 Work through these in order. Each step has a dedicated reference file with the exact bpy patterns and the specific pitfalls discovered in real conversions — **read the linked reference before doing the step.** Mark progress and check in with the user at the destructive steps.

@@ -6,13 +6,12 @@ In MMD rigs the constraint-driven bones show up **colored** in Pose Mode (and ma
 
 ## Clear every pose-bone constraint
 
+Pose-bone constraints are editable directly from Object Mode — **no need to enter Pose Mode** (which avoids the MCP `mode_set` context issue entirely):
+
 ```python
 import bpy
 
 arm = next((o for o in bpy.data.objects if o.type == 'ARMATURE'), None)
-bpy.context.view_layer.objects.active = arm
-arm.select_set(True)
-bpy.ops.object.mode_set(mode='POSE')
 
 cleared = 0
 for pb in arm.pose.bones:
@@ -21,11 +20,12 @@ for pb in arm.pose.bones:
         for c in list(pb.constraints):
             pb.constraints.remove(c)
         cleared += n
-        print(f"  cleared {n} constraint(s) on {pb.name}")
 
-bpy.ops.object.mode_set(mode='OBJECT')
-print("total constraints removed:", cleared)
+remaining = sum(len(pb.constraints) for pb in arm.pose.bones)
+print("constraints removed:", cleared, " remaining:", remaining)
 ```
+
+(Real example: a typical MMD model had 47 constraints on 43 bones — TRANSFORM on twist bones, COPY_TRANSFORMS on `_shadow_*`, IK on feet. All clear cleanly this way.)
 
 ## Notes
 
