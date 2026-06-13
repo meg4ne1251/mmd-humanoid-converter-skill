@@ -2,6 +2,8 @@
 
 The target naming convention. Read this before any renaming (Step 5). `_L` / `_R` suffixes pair left and right. Keep spine numbering **contiguous** (Spine1, Spine2, Spine3 — never skip a number).
 
+> **Source-name styles vary by import setting.** Depending on the MMD Tools import options, the same bone arrives as either the raw MMD name with a 左/右 **prefix** (`左腕捩`, `左肩P`) or a translated **`.L`/`.R` suffix** form (`腕捩.L`, `肩P.L`). Code examples across the reference files mix both styles — neither is "the" correct one. Always read the actual bone names from the scene (Step 0) and adapt the snippets to whichever style this model uses.
+
 ## Target hierarchy (recap)
 
 ```

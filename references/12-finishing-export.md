@@ -104,6 +104,9 @@ MMD models usually delete body mesh hidden by clothing. If an outfit would expos
 
 ## Export → MotionBuilder
 
+> Run **Step 11 (tidy material & texture names, `references/13-material-texture-rename.md`)
+> before this** — FBX bakes datablock names into the file, so renaming after export is too late.
+
 When the conversion is done and pose-tested, export FBX and characterize in MotionBuilder.
 
 ```python

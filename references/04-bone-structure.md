@@ -44,10 +44,8 @@ spine1.parent  = hips
 upleg_l.parent = hips
 upleg_r.parent = hips
 
-# point hips tail at spine1 so it reads upward (keep head fixed)
-orig = hips.head.copy()
+# point hips tail at spine1 so it reads upward (head stays where it is)
 hips.tail = spine1.head.copy()
-hips.head = orig
 
 # --- delete MMD-only torso control bones AFTER confirming they hold no weight ---
 for name in ["センター", "グループ", "センター先"]:

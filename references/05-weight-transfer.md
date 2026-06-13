@@ -39,7 +39,7 @@ def transfer_weight(mesh_obj, src, dst, mode='ADD', delete_source=True):
     bpy.context.view_layer.objects.active = mesh_obj
     mod = mesh_obj.modifiers.new(name="WT_TMP", type='VERTEX_WEIGHT_MIX')
     mod.mix_mode = mode            # 'ADD' or 'SET'
-    mod.mix_set = 'B'              # affect vertices in either group
+    mod.mix_set = 'B'              # affect only vertices in group B (the source) — NOT 'OR'/'ALL'
     mod.mask_constant = 1.0        # full strength on all vertices
     mod.vertex_group_a = dst       # destination (kept)
     mod.vertex_group_b = src       # source (merged in)

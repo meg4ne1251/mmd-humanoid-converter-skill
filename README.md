@@ -57,13 +57,15 @@ Reference → Parent → Hips
 
 ### Claude の場合
 
-スキルを読み込むディレクトリにクローンしてください。
+スキルを読み込むディレクトリにクローンしてください。例えば Claude Code の場合は `~/.claude/skills/` 配下です:
 
 ```bash
-git clone https://github.com/meg4ne1251/mmd-humanoid-converter-skill.git
+mkdir -p ~/.claude/skills
+git clone https://github.com/meg4ne1251/mmd-humanoid-converter-skill.git \
+  ~/.claude/skills/mmd-humanoid-converter
 ```
 
-フォルダを Claude にスキルとして認識させます（お使いのクライアントがスキルを読み込む場所に配置）。
+（Cowork など他のクライアントの場合は、お使いのクライアントがスキルを読み込む場所に配置してください。）
 
 さらに Blender MCP サーバーを登録します（Claude Code の場合）:
 

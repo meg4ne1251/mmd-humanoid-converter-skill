@@ -8,6 +8,9 @@ docs-note-commit/
 # settings.json（Blender MCP 設定）はコミットする。
 .gemini/skills/
 
+# ===== Claude Code ローカル設定 =====
+.claude/
+
 # ===== OS / エディタ =====
 .DS_Store
 Thumbs.db
@@ -30,3 +33,6 @@ env/
 *.blend@
 *.skill
 
+
+# ===== 検証用スクショ（ルートの一時出力。公開しない） =====
+/_*.png

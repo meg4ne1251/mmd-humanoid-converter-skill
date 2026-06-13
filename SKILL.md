@@ -7,7 +7,7 @@ description: Convert an MMD (MikuMikuDance) PMX/PMD model into a clean Humanoid-
 
 This skill drives Blender (through the Blender MCP) to convert an MMD model — imported via the **MMD Tools** addon — into a clean Humanoid rig. It is the automation of a workflow that used to be done by hand.
 
-> **Validated end-to-end** on a real MMD model (a 196-bone きりたん variant, 43 materials) on Blender 5.x: full run from inspection through twist-bone weight transfer, IK/shoulder-helper removal, waist re-rooting, Humanoid rename, material rewire, part separation, and FBX export — pose-tested at each destructive step. The reference files carry the concrete pitfalls found during that run (multi-user mesh data, MCP operator-context failures, the `mmd_shader` node-group material layout, etc.). MMD conversion still "has no always" — treat the skill as semi-automatic, not guaranteed.
+> **Validated end-to-end** on a real MMD model (a 196-bone きりたん variant, 43 materials) on Blender 5.x: full run from inspection through twist-bone weight transfer, IK/shoulder-helper removal, waist re-rooting, Humanoid rename, material rewire, part separation, material/texture name tidy, and FBX export — pose-tested at each destructive step. The reference files carry the concrete pitfalls found during that run (multi-user mesh data, MCP operator-context failures, the `mmd_shader` node-group material layout, etc.). MMD conversion still "has no always" — treat the skill as semi-automatic, not guaranteed.
 
 ## Read this first: the mindset
 
@@ -31,7 +31,7 @@ Reference → Parent → Hips
 
 By contrast, raw MMD rigs have a **downward** waist (センター/グループ/センター先 etc.), upward "twist"/捩り helper bones splitting the arm weights across several bones, and separate IK/FK control bones around the wrists/ankles. Converting means reshaping the MMD rig into the structure above.
 
-The full naming map (body, legs, arms, fingers, costume/hair) is in `references/bone-naming.md`. Read it before any renaming.
+The full naming map (body, legs, arms, fingers, costume/hair) is in `references/bone-naming.md`. Read it before any renaming. Note that source bone names come in two styles depending on the MMD Tools import settings — 左/右 prefix (`左腕捩`) or `.L`/`.R` suffix (`腕捩.L`) — so always read the real names from the scene rather than copying example names verbatim.
 
 ## Prerequisites — confirm, don't assume
 
@@ -141,13 +141,18 @@ Split face/hair/body/clothes/accessories into separate objects. Material-based s
 ### Step 9 — Rename face shape keys
 Rename the Japanese vowel shape keys `あ い う え お` → `a i u e o`. → `references/11-shapekeys.md`
 
-### Step 10 — Optional finishing & export
-Polish the rig, then export. None of these sub-steps are required — do them if the user wants them.
+### Step 10 — Optional finishing
+Polish the rig. None of these sub-steps are required — do them if the user wants them.
 
 - **10a. Delete tip bones (先端ボーン).** Find all bones whose name contains `先`, verify actual per-vertex weights are zero, then delete in Edit Mode. If any carry weight, stop and ask before proceeding. → `references/12-finishing-export.md`
 - **10b. Tris → quads.** Only if the user explicitly asks.
 - **10c. Hidden body under clothes.** MMD models typically delete body mesh covered by clothing. This is manual modeling work — flag it to the user rather than attempting automation.
-- **10d. FBX export** → characterize in MotionBuilder. → `references/12-finishing-export.md`
+
+### Step 11 — Tidy material & texture names
+The last **editing** step before export. MMD/VRoid imports leave long, opaque names (`N00_007_01_Tops_01_CLOTH_01 (Instance)`, base textures called `_12.png`). Rename each material to a short, clear, half-width **ASCII** name, and make its **base-color texture carry the exact same name**. Two firm rules: **material name == base texture name, always**, and **if one texture is shared by several materials, duplicate it** so every material owns a same-named base texture (no base image is shared afterward). Auxiliary toon textures are tidied to `<name>_toon`; shared helpers (matcap/sphere) are intentionally left shared. Don't hard-code a scheme — read the real names, **propose a clean mapping, confirm with the user**, dry-run, then apply. Must run **before** export, since FBX bakes in the names. → `references/13-material-texture-rename.md`
+
+### Step 12 — Export
+When the conversion is done and pose-tested, FBX export → characterize in MotionBuilder. Use `add_leaf_bones=False` so you don't re-add the leaf bones you just cleaned. → export section of `references/12-finishing-export.md`
 
 ## Weight transfer — the heart of the cleanup
 
