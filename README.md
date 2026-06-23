@@ -34,7 +34,8 @@ Reference → Parent → Hips
 8. マテリアルを Principled BSDF へ変換（任意）
 9. メッシュのパーツ分離
 10. シェイプキーのリネーム（`あ い う え お` → `a i u e o`）
-11. 仕上げと FBX 出力（先端ボーン削除〔名前に「先」を含むボーン〕、→ MotionBuilder でキャラクタライズ）
+11. マテリアル／テクスチャ名の整理（マテリアル名 == ベーステクスチャ名に統一。FBX 出力前の最後の編集ステップ）
+12. 仕上げと FBX 出力（先端ボーン削除〔名前に「先」を含むボーン〕、→ MotionBuilder でキャラクタライズ）
 
 各ステップの具体的な bpy コードと、実機検証で判明した落とし穴は `references/` 配下の個別ファイルにまとめてあります。
 
@@ -136,13 +137,22 @@ Gemini CLI を起動すると、`SKILL.md` が自動的に読み込まれ、MMD 
 │   ├── 10-separate-parts.md
 │   ├── 11-shapekeys.md
 │   ├── 12-finishing-export.md
+│   ├── 13-material-texture-rename.md
 │   ├── bone-naming.md
 │   └── material-bsdf.md
+├── material-texture-namer/  # 同梱の単独サブスキル（下記参照）
+│   ├── SKILL.md
+│   ├── README.md
+│   └── references/material-texture-namer.md
 ├── CLAUDE.md         # Claude 向けプロジェクトメモ
 ├── GEMINI.md         # Gemini 向けプロジェクトメモ
 ├── LICENSE           # MIT ライセンス
 └── README.md
 ```
+
+### 同梱スキルについて
+
+このリポジトリにはメインの `mmd-humanoid-converter` スキル（ルートの `SKILL.md`）に加えて、`material-texture-namer/` に**単独でも使えるサブスキル**を同梱しています。これは変換フローの Step 11（マテリアル／テクスチャ名の整理）を、MMD 変換に限らず任意の Blender モデルへ単体で適用できるよう切り出したものです。詳細は `material-texture-namer/README.md` を参照してください。
 
 ## ライセンス・免責
 
