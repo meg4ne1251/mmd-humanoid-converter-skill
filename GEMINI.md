@@ -62,7 +62,8 @@ git clone https://github.com/meg4ne1251/mmd-humanoid-converter-skill.git \
 10. **シェイプキーのリネーム** — `あ い う え お` → `a i u e o`。
 11. **任意の仕上げ** — 先端ボーン削除（名前に「先」を含むボーン。ウェイト確認後に Edit Mode で削除）、三角面→四角面、服で隠れる素体メッシュの作成。
 12. **マテリアル／テクスチャ名の整理** — MMD/VRoid 由来の長く不透明な名前を短い半角英数へ整理し、各マテリアルの**ベースカラー・テクスチャ名をマテリアル名に一致**させる。共有テクスチャは複製。FBX はこの名前を焼き込むので**エクスポート前**に実施。`references/13-material-texture-rename.md`。
-13. 完了後 FBX 出力 → MotionBuilder でキャラクタライズ。
+13. **FBX 出力** — 完了後 FBX 出力 → MotionBuilder でキャラクタライズ。
+14. **テクスチャ出力（任意・会話終了時確認）** — blendファイルと同階層の `tex/` フォルダに全テクスチャを PNG 形式（`Blender内テクスチャ名.png`）で保存し、Blender内パスを `//tex/...` に更新。全作業終了時の締めくくりコメントで必ず「追加でテクスチャの出力を行いますか？」と確認する。`references/14-texture-export.md`。
 
 ### ウェイト転送について
 
@@ -104,7 +105,7 @@ Bones
 ```
 / (リポジトリルート = スキル本体)
 ├─ SKILL.md           # スキル定義（変換フローのオーケストレーション）
-├─ references/         # ステップ別の詳細（bpy コード＋落とし穴。01〜13 + bone-naming/material-bsdf）
+├─ references/         # ステップ別の詳細（bpy コード＋落とし穴。01〜14 + bone-naming/material-bsdf）
 ├─ material-texture-namer/  # 同梱の単独サブスキル（Step12 の名前整理を任意モデルへ単体適用）
 ├─ CLAUDE.md           # Claude 向けプロジェクトメモ
 ├─ GEMINI.md           # Gemini 向けプロジェクトメモ（このファイル）

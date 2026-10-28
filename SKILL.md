@@ -154,6 +154,15 @@ The last **editing** step before export. MMD/VRoid imports leave long, opaque na
 ### Step 12 — Export
 When the conversion is done and pose-tested, FBX export → characterize in MotionBuilder. Use `add_leaf_bones=False` so you don't re-add the leaf bones you just cleaned. → export section of `references/12-finishing-export.md`
 
+### Step 13 — Export textures to `tex/` folder (Optional)
+Export all textures used in the model into a `tex/` folder located in the same directory as the `.blend` file. Textures are exported in PNG format and named `[Blender内でのテクスチャの名前].png` (e.g. `Face.png`, `Clothes_01.png`), stripping existing extensions to prevent duplicates like `.png.png` or `.bmp.png`. Blender's internal image filepaths are updated to relative `//tex/<name>.png`. → `references/14-texture-export.md`
+
+### Conversation closing rule (会話終了時の必須確認)
+**全ての作業が終わった後に、会話が終わる時のコメントで必ずユーザーに以下を尋ねること：**
+> 「追加でテクスチャの出力を行いますか？」
+
+これに対してクライアント（ユーザー）が出力を希望した場合は、Step 13（`references/14-texture-export.md`）と同じ手順・条件（blendファイルと同じディレクトリに `tex/` フォルダを作成、Blender内テクスチャ名.png として保存、二重拡張子防止、Blender内パスを `//tex/...` に更新）でテクスチャを出力する。
+
 ## Weight transfer — the heart of the cleanup
 
 Many MMD arm/leg weights are split across twist/helper bones, so deleting those bones naively tears the mesh. The fix is to **merge the split weights onto the single real bone before deleting.** This skill does it directly in bpy with a temporary `VERTEX_WEIGHT_MIX` modifier (the same mechanism the original hand-tool used), supporting **SET (overwrite)** and **ADD (accumulate)** modes, optional source-group deletion, and L/R mirroring. ADD must be applied **once only** — running it twice corrupts the weight gradient. The complete, copy-pasteable implementation and the rules live in `references/05-weight-transfer.md` — read it before transferring any weights.

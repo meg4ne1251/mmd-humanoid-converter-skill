@@ -36,6 +36,7 @@ Reference → Parent → Hips
 10. シェイプキーのリネーム（`あ い う え お` → `a i u e o`）
 11. マテリアル／テクスチャ名の整理（マテリアル名 == ベーステクスチャ名に統一。FBX 出力前の最後の編集ステップ）
 12. 仕上げと FBX 出力（先端ボーン削除〔名前に「先」を含むボーン〕、→ MotionBuilder でキャラクタライズ）
+13. テクスチャの PNG 出力（任意・会話終了時確認。blend ファイルと同階層の `tex/` フォルダへ `テクスチャ名.png` として保存し Blender 内パスを更新）
 
 各ステップの具体的な bpy コードと、実機検証で判明した落とし穴は `references/` 配下の個別ファイルにまとめてあります。
 
@@ -138,6 +139,7 @@ Gemini CLI を起動すると、`SKILL.md` が自動的に読み込まれ、MMD 
 │   ├── 11-shapekeys.md
 │   ├── 12-finishing-export.md
 │   ├── 13-material-texture-rename.md
+│   ├── 14-texture-export.md
 │   ├── bone-naming.md
 │   └── material-bsdf.md
 ├── material-texture-namer/  # 同梱の単独サブスキル（下記参照）
