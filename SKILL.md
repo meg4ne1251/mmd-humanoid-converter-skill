@@ -1,11 +1,13 @@
 ---
 name: mmd-humanoid-converter
-description: Convert an MMD (MikuMikuDance) PMX/PMD model into a clean Humanoid-rig model inside Blender via the Blender MCP. Use this skill whenever the user wants to convert, retarget, clean up, or "humanoid-ify" an MMD model in Blender — including removing MMD-specific bones (twist/IK/center/group bones), transferring vertex weights onto the real arm/leg bones, fixing the downward-pointing waist bone, renaming bones to the Humanoid convention (Hips/Spine/UpArm/ForeArm/Hand/UpLeg/Leg/Foot/Toe), splitting the mesh into parts, and renaming Japanese shape keys. Trigger this even if the user only says "I imported an MMD model and want to use it in Unity/MotionBuilder" or "make this MMD model usable for our rig," since that is exactly this workflow.
+description: Convert MMD PMX/PMD models or saved Blender scenes to Humanoid rigs, transferring helper-bone weights, restructuring and renaming bones, tidying materials and exporting FBX/textures. Prefer background Blender CLI; use GUI/MCP for interactive corrections. Use for MMD cleanup and preparation for Unity or MotionBuilder.
 ---
 
 # MMD → Humanoid Converter
 
-This skill drives Blender (through the Blender MCP) to convert an MMD model — imported via the **MMD Tools** addon — into a clean Humanoid rig. It is the automation of a workflow that used to be done by hand.
+This skill runs Blender **in background mode through `scripts/mmd_cli.py`** to convert an MMD model into a clean Humanoid rig. Accept saved `.blend` scenes or import `.pmx`/`.pmd` with MMD Tools. Use GUI/MCP only when interaction is needed.
+
+Read [CLI workflow and plan schema](references/cli-workflow.md) before execution. It defines the `inspect → plan → dry-run → apply → verify/render → export` path, checkpoint handling and supported operations. The CLI mechanics were integration-tested on synthetic data in Blender 5.1.1; real models still require model-specific mappings and inspection. The historical live-model validation below describes the earlier MCP workflow, not a completed CLI validation of every model.
 
 > **Validated end-to-end** on a real MMD model (a 196-bone きりたん variant, 43 materials) on Blender 5.x: full run from inspection through twist-bone weight transfer, IK/shoulder-helper removal, waist re-rooting, Humanoid rename, material rewire, part separation, material/texture name tidy, and FBX export — pose-tested at each destructive step. The reference files carry the concrete pitfalls found during that run (multi-user mesh data, MCP operator-context failures, the `mmd_shader` node-group material layout, etc.). MMD conversion still "has no always" — treat the skill as semi-automatic, not guaranteed.
 
@@ -13,7 +15,7 @@ This skill drives Blender (through the Blender MCP) to convert an MMD model — 
 
 **MMD conversion has no "always."** Every model is structured and named differently. There is no fixed bone list you can hard-code. The single most important rule of this skill is: **inspect the real scene before you act.** Read the actual armature, the actual bones, the actual vertex groups, the actual material slots — then decide. Never assume a bone exists, never assume a name, never assume a hierarchy.
 
-This skill is **semi-automatic by design.** Claude does the tedious, deterministic work (renaming, weight math, deleting clearly-unneeded bones), but **destructive operations** — deleting bones, clearing weights, restructuring parenting — must be preceded by an inspection and a short confirmation with the user. The goal is "do the rote work, surface the judgment calls," not "fully automatic perfect conversion." Some models will need manual fixes; that's expected, and the skill should say so rather than pretend otherwise.
+This skill is **semi-automatic by design.** The assistant handles deterministic work (renaming, weight math, deleting clearly-unneeded bones); model-specific judgment remains necessary. Inspect before destructive operations, and follow the user's selected execution mode for confirmations. Some models need manual corrections; report them clearly.
 
 ## Goal: the target hierarchy
 
@@ -33,17 +35,22 @@ By contrast, raw MMD rigs have a **downward** waist (センター/グループ/�
 
 The full naming map (body, legs, arms, fingers, costume/hair) is in `references/bone-naming.md`. Read it before any renaming. Note that source bone names come in two styles depending on the MMD Tools import settings — 左/右 prefix (`左腕捩`) or `.L`/`.R` suffix (`腕捩.L`) — so always read the real names from the scene rather than copying example names verbatim.
 
-## Prerequisites — confirm, don't assume
+## Execution path and prerequisites
 
-Before starting, confirm with the user (and verify in-scene where possible):
+1. Locate the input file and Blender executable. The launcher checks `--blender`, `BLENDER_BIN`, PATH and the standard macOS app location; it does not depend on interactive shell aliases. System Python 3.10+ is sufficient to launch it.
+2. Use a saved `.blend`, `.pmx` or `.pmd`. MMD Tools is needed for PMX/PMD import, not for ordinary edits to an already imported blend. `.fbx` may also be inspected. Read actual importer settings instead of assuming they match a previous model.
+3. Preserve the source. CLI commands write only to a **new** output directory and save an initial checkpoint plus per-operation checkpoints; verify `input_unchanged` in the report. This satisfies the backup requirement without asking the user to make a manual copy. For an unsaved GUI scene, save a separate input copy first; the CLI cannot read another process's unsaved memory.
+4. Choose/retain the user's step or batch mode below. Inspect first, summarize the scene, then create an explicit model-specific JSON plan. Do not open Blender's GUI or request MCP setup merely to inspect, edit, render or export a saved input.
 
-1. **Blender is open with the Blender MCP addon connected.** This skill cannot work otherwise.
-2. **The MMD model is already imported** via the MMD Tools addon (File → Import → MikuMikuDance Model `.pmd/.pmx`). Importing the file itself is outside this skill — if nothing is in the scene, ask the user to import first. Note the Blender version (behavior differs between 4.x and 5.x; see `references/material-bsdf.md`).
-3. **Back up the .blend file before proceeding.** This workflow makes irreversible changes — bones are deleted, weights are merged, parenting is rebuilt. Remind the user to save a copy (File → Save Copy… or duplicate the file in Finder/Explorer) **before** you start Step 1. Do not proceed until they confirm the backup is done.
+```sh
+python3 scripts/mmd_cli.py inspect "input.blend" --output-dir "work/inspect-01"
+```
 
-If you need API details mid-task, prefer the dedicated Blender MCP tools (`get_objects_summary`, `get_object_detail_summary`, `search_api_docs`, etc.) and fall back to `execute_blender_code` only when no dedicated tool fits. Always set mode / active object / selection explicitly before operators, and update the depsgraph before reading computed values.
+Check the exit status and `report.json`, not just the existence of an output file. `apply --dry-run` simulates the plan in memory; `apply` writes checkpoints and `converted.blend`. `export --textures` writes a new blend, FBX and `tex/`, then checks saved/reloaded data. Read warnings and generate rest/pose images before reporting success. Follow applicable local post-export instructions once FBX and textures are verified.
 
-### Running operators through the Blender MCP (read this — it bites every step)
+### GUI/MCP fallback only
+
+For manual modeling, weight painting or an explicitly interactive task, use the connected Blender instance. Save a backup before destructive edits there. Dedicated MCP inspection tools are useful if available. The following context workaround and per-step GUI snippets apply **only** to this fallback; the CLI worker sets active object/selection/mode and does not search for VIEW_3D areas.
 
 Code run via `execute_blender_code` does **not** have a normal UI context, so many `bpy.ops` operators fail with *"context is incorrect"* or *"poll() failed"* — confirmed on Blender 5.x with `hide_view_clear`, `object.delete`, `object.mode_set`, `object.select_all`, `view3d.*`, `render.opengl`, etc. Two reliable workarounds:
 
@@ -73,7 +80,7 @@ Also: `mode_set(mode='POSE')` only works when the **active object is the armatur
 
 ## The workflow
 
-Work through these in order. Each step has a dedicated reference file with the exact bpy patterns and the specific pitfalls discovered in real conversions — **read the linked reference before doing the step.** Mark progress and check in with the user at the destructive steps.
+Work through these in order. **Read the linked reference before each step**, then encode supported edits in the CLI plan using `references/cli-workflow.md`. The reference snippets preserve historical bpy patterns; GUI-context wrappers are not the execution path for CLI. Mark progress and follow the selected mode at destructive steps.
 
 ### Mode selection — ask before Step 0
 
@@ -149,19 +156,21 @@ Polish the rig. None of these sub-steps are required — do them if the user wan
 - **10c. Hidden body under clothes.** MMD models typically delete body mesh covered by clothing. This is manual modeling work — flag it to the user rather than attempting automation.
 
 ### Step 11 — Tidy material & texture names
-The last **editing** step before export. MMD/VRoid imports leave long, opaque names (`N00_007_01_Tops_01_CLOTH_01 (Instance)`, base textures called `_12.png`). Rename each material to a short, clear, half-width **ASCII** name, and make its **base-color texture carry the exact same name**. Two firm rules: **material name == base texture name, always**, and **if one texture is shared by several materials, duplicate it** so every material owns a same-named base texture (no base image is shared afterward). Auxiliary toon textures are tidied to `<name>_toon`; shared helpers (matcap/sphere) are intentionally left shared. Don't hard-code a scheme — read the real names, **propose a clean mapping, confirm with the user**, dry-run, then apply. Must run **before** export, since FBX bakes in the names. → `references/13-material-texture-rename.md`
+The last **editing** step before export. Rename opaque material names to clear ASCII and make **material name == base-color image name**. Duplicate shared base images; tidy unique toon images to `<name>_toon`, retaining shared helpers. Read the actual names, show the proposed mapping, dry-run and follow the selected mode for approval. Use the CLI `rename_materials` operation **before** export. → `references/13-material-texture-rename.md`
 
 ### Step 12 — Export
-When the conversion is done and pose-tested, FBX export → characterize in MotionBuilder. Use `add_leaf_bones=False` so you don't re-add the leaf bones you just cleaned. → export section of `references/12-finishing-export.md`
+After numerical pose tests and image review, use CLI `export` (with `--textures` if requested) for FBX plus a saved blend and roundtrip checks. It uses `add_leaf_bones=False`, `bake_anim=False` and `use_mesh_modifiers=False` to preserve shape keys. Follow applicable local characterization instructions after texture validation; SDK checks do not prove MotionBuilder HIK or appearance. → `references/cli-workflow.md` + `references/12-finishing-export.md`
 
 ### Step 13 — Export textures to `tex/` folder (Optional)
 Export all textures used in the model into a `tex/` folder located in the same directory as the `.blend` file. Textures are exported in PNG format and named `[Blender内でのテクスチャの名前].png` (e.g. `Face.png`, `Clothes_01.png`), stripping existing extensions to prevent duplicates like `.png.png` or `.bmp.png`. Blender's internal image filepaths are updated to relative `//tex/<name>.png`. → `references/14-texture-export.md`
 
 ### Conversation closing rule (会話終了時の必須確認)
-**全ての作業が終わった後に、会話が終わる時のコメントで必ずユーザーに以下を尋ねること：**
+**モデル変換・出力を実施した会話で、テクスチャ出力の希望がまだ分からない場合に以下を尋ねること：**
 > 「追加でテクスチャの出力を行いますか？」
 
 これに対してクライアント（ユーザー）が出力を希望した場合は、Step 13（`references/14-texture-export.md`）と同じ手順・条件（blendファイルと同じディレクトリに `tex/` フォルダを作成、Blender内テクスチャ名.png として保存、二重拡張子防止、Blender内パスを `//tex/...` に更新）でテクスチャを出力する。
+
+既に希望が示されている／出力済みの場合は再確認しない。手順・スクリプト編集や調査だけの会話にはこの質問を適用しない。
 
 ## Weight transfer — the heart of the cleanup
 
@@ -171,8 +180,9 @@ Many MMD arm/leg weights are split across twist/helper bones, so deleting those 
 
 - Inspect first: read the real bones / vertex groups / materials, never guess.
 - Before deleting a bone: confirm it carries no weight, or transfer its weight first.
-- Surface the deletion/restructure plan to the user and get a confirmation.
+- Surface the deletion/restructure plan and obtain confirmation when the selected execution mode requires it.
 - Operate in the correct mode (Object / Edit / Pose); set active object & selection explicitly.
 - In Edit Mode use `edit_bones`; in Object Mode use `armature.bones` (read-only for geometry, but renaming works here).
 - After changes, update the depsgraph before reading computed values; pose-test after restructuring/renaming.
+- CLI failures retain checkpoints and diagnostics; resume from the last good checkpoint with a new matching plan. Do not rerun ADD against a partially changed model.
 - When unsure, stop and ask — a wrong delete can ruin the model, and "MMD conversion has no always."

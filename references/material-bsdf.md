@@ -1,5 +1,10 @@
 # Step 7 — Convert materials to Principled BSDF
 
+**CLI:** use `principled_materials` with explicit base-color node names from inspection.
+This preserves image/UV nodes and supports both layouts below without guessing the first
+image node. `render` generates camera images for review without Material Preview.
+See [CLI workflow](cli-workflow.md); the snippets below explain the shader mechanics.
+
 MMD models import with one of **two different node setups** depending on the MMD Tools version — check which one you have before doing anything:
 
 - **Old layout (toon mix):** `Emission` + `BSDF_Transparent` + `MIX_SHADER` + `LIGHT_PATH`, plus `MATH`/`FRAME` helpers. Replace with a single Principled BSDF (the `MIX_SHADER`-based procedure below).

@@ -1,5 +1,10 @@
 # Step 3 — Restructure the bones
 
+**CLI:** encode inspected weight transfers, bone additions/geometry/parent updates and
+deletions with `transfer_weights` and `edit_bones`. Use a new non-deforming Parent above
+Hips instead of moving a weighted head. See [CLI workflow](cli-workflow.md).
+The VIEW_3D overrides below are historical **GUI/MCP-only** patterns, unnecessary in the CLI worker.
+
 This is the core of the conversion and the part most likely to need human judgment. The target is the hierarchy in SKILL.md. Work in **Edit Mode** for geometry/parenting (`edit_bones`); switch to **Pose Mode** to test deformation afterward.
 
 > **MCP context:** entering Edit Mode needs a VIEW_3D context override, and `mode_set(mode='POSE')` needs the armature to be the active object. See the "Running operators through the Blender MCP" note in SKILL.md. All Edit-Mode snippets below assume you wrapped `mode_set` with `temp_override(**view3d_ctx())`.

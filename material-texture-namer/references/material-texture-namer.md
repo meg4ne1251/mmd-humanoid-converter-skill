@@ -1,7 +1,32 @@
 # Material & Texture Namer — implementation
 
-Copy-pasteable bpy for both modes. Run each block through the Blender MCP
-(`execute_blender_code`). Always **inspect → dry-run → confirm → apply → verify**.
+Copy-pasteable bpy for both modes. Prefer background Blender for saved models.
+Always **inspect → dry-run → confirm → apply → verify**. GUI/MCP is an optional alternative.
+
+## Execution
+
+When bundled with the converter, use its `scripts/mmd_cli.py inspect`, then `apply --dry-run`
+and `apply` with an explicit material-only plan: `armature: null`, model `meshes`, and a
+`rename_materials` operation. No armature or conversion is required. Mode 1 uses each
+material's current name, `ascii_only: false`, `tidy_toon: false`; mode 2 uses the approved
+ASCII mapping. Provide `base_color_node` explicitly for MMD/complex graphs. The parent
+`references/cli-workflow.md` describes the complete schema and new-directory protection.
+
+If this subskill is installed alone, compose a temporary script from the helpers and
+relevant blocks below, restrict `targets` to materials on the inspected model meshes,
+and run it with Blender's own Python:
+
+```sh
+blender --background --disable-autoexec "input.blend" --python-exit-code 1 --python "namer_job.py"
+```
+
+Use the actual executable path if an alias is unavailable in the execution shell.
+Run inspection/dry-run without saving. In the apply script, assert that destination
+material/image names do not collide, raise on ambiguous bases or failed invariants, then
+save to a **new** blend path with `bpy.ops.wm.save_as_mainfile(filepath=output_path)`.
+Never save over `bpy.data.filepath` or run the apply block during a read-only preview.
+The bpy below needs no viewport, Edit Mode or GUI context override. No model
+characterization should be invoked for this standalone naming task.
 
 The two modes:
 

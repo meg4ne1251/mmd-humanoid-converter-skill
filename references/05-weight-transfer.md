@@ -1,5 +1,10 @@
 # Weight transfer (bone → bone)
 
+**CLI:** use `transfer_weights` with explicit source/target pairs. The worker handles
+single-user data, verifies per-vertex results and unchanged geometry/shape keys, then
+removes the source group. Failure stops before subsequent bone deletion. Resume from a
+checkpoint with a new matching plan rather than relying on GUI undo. See [CLI workflow](cli-workflow.md).
+
 The single most important safety mechanism in this skill. Before deleting any weighted bone (twist, IK, helper), **merge its vertex-group weight onto the bone that should keep it.** Skipping this tears the mesh — the deleted bone's vertices stop following anything.
 
 This is the bpy equivalent of the original hand-built addon: a temporary `VERTEX_WEIGHT_MIX` modifier copies weights from a source vertex group into a destination vertex group, then is applied and removed.

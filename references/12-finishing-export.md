@@ -1,5 +1,10 @@
 # Step 10 — Optional finishing & export
 
+**CLI:** inspect tip-bone weights and list confirmed deletions in `edit_bones.delete`.
+After all editing, use CLI `export` (optionally `--textures`) for a new blend, FBX and
+saved/reloaded checks. See [CLI workflow](cli-workflow.md). VIEW_3D/GUI examples below
+are alternative implementations, not required by the CLI worker.
+
 Optional polish, then export for the downstream pipeline. None of the polish items are required; do them if the user wants them.
 
 ## Optional polish
@@ -116,6 +121,7 @@ bpy.ops.export_scene.fbx(
     use_selection=False,
     add_leaf_bones=False,     # don't re-add the leaf bones you just cleaned
     bake_anim=False,
+    use_mesh_modifiers=False, # preserve shape keys; inspect other modifiers separately
     mesh_smooth_type='FACE',
 )
 ```

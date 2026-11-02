@@ -1,5 +1,11 @@
 # Verify the rig deforms correctly
 
+**CLI first:** `verify INPUT --pose "ACTUAL_BONE:Y:30" --output-dir NEW_DIR` checks
+structure and numerical deformation/restoration. `render` with the same `--pose` writes
+rest/posed camera images without a viewport. Review images as well as numerical results;
+movement alone does not prove good deformation. See [CLI workflow](cli-workflow.md).
+The viewport tools below are **GUI/MCP fallback** examples only.
+
 After any restructuring, weight transfer, or rename, confirm the mesh still follows the bones. This is how you catch a torn weight or a dropped vertex group before it compounds.
 
 ## Quick programmatic checks

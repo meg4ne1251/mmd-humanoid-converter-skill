@@ -1,5 +1,8 @@
 # Step 5 — Rename bones to the Humanoid convention
 
+**CLI:** use `rename_bones.mapping` after reading `bone-naming.md` and actual names.
+The worker checks collisions and vertex-group follow-through. See [CLI workflow](cli-workflow.md).
+
 Apply the names from `references/bone-naming.md`. The key convenience: **renaming a bone automatically renames the matching vertex group**, so weights follow the rename — no manual vertex-group editing needed.
 
 ## Do it in Object Mode on `armature.bones`

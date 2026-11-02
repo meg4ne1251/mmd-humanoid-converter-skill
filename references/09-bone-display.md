@@ -1,5 +1,9 @@
 # Step 6 — Connect chain bones, display & tail directions
 
+**CLI:** specify inspected tail changes via `edit_bones.update`, then run `connect_bones`.
+It connects only coincident heads/tails and reports the maximum shift. See [CLI workflow](cli-workflow.md).
+The VIEW_3D override below is for the GUI/MCP alternative, not background mode.
+
 MMD-imported armatures display as spheres with all tails pointing straight up and **every bone disconnected** (`use_connect = False`), which makes the rig look like a pile of free-floating bones. This step fixes the display, points tails at their children, and **connects the serial chain bones** so the rig reads as a continuous, legible skeleton that behaves better in MotionBuilder/Unity. The connection pass is the substantive part — the display/tail work just sets it up cleanly.
 
 ## Display type

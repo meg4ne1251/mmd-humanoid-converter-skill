@@ -1,5 +1,10 @@
 # Step 8 — Separate the mesh into parts
 
+**CLI:** use `separate_materials` with an explicit, complete material→part mapping;
+the worker separates, joins by part, checks shape-key names and tracks the resulting meshes.
+Use inspected selections in a custom background bpy script when one material spans several
+semantic parts. See [CLI workflow](cli-workflow.md). GUI-context wrappers below are fallback-only.
+
 Split the model into logical objects (face, hair, body, clothes, accessories). **Do this last**, after all rig work — separating earlier means redoing weight/bone checks per object.
 
 ## Method A — by material (when materials map 1:1 to parts)

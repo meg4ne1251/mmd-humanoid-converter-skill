@@ -1,5 +1,8 @@
 # Step 2 — Clear bone constraints
 
+**CLI:** use `clear_constraints`; add `reset_pose` if inspection shows a non-neutral pose
+that should be reset. Both run without Pose Mode or a VIEW_3D area. See [CLI workflow](cli-workflow.md).
+
 **Goal:** remove all pose-bone constraints so the later restructuring (rotating the waist, re-parenting, deleting bones) isn't fought by IK/copy-rotation/limit constraints.
 
 In MMD rigs the constraint-driven bones show up **colored** in Pose Mode (and may be hidden — `Alt+H` reveals them). Each carries one or more constraints visible in the Bone Constraint Properties tab. The original workflow deletes them one bone at a time via the ❌ button; in bpy we can clear them all at once.

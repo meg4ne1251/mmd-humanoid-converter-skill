@@ -1,11 +1,11 @@
 ---
 name: material-texture-namer
-description: Unify and clean up material and texture names in Blender via the Blender MCP. Use this skill whenever the user wants to make each material's base-color texture share the material's name, tidy long/opaque material and texture names into short readable ASCII, or "整理 / リネーム / 名前を一致させる" for materials and textures (common after importing MMD/VRoid/FBX models). The skill first asks which of two modes to run — (1) match texture names to material names only, or (2) match names AND rename them to clear short names — then drives Blender to do it, duplicating any texture shared across multiple materials so every material ends up with its own same-named texture.
+description: Match Blender material names and base-color image names, duplicating shared base images, optionally tidying names to readable ASCII. Use for material/texture naming after MMD, VRoid or FBX import. Prefer background Blender CLI for saved models; GUI/MCP is optional.
 ---
 
 # Material & Texture Namer
 
-This skill drives Blender (through the Blender MCP) to clean up **material and texture
+This skill drives Blender (preferably through background CLI) to clean up **material and texture
 names** so that every material's **base-color texture carries the same name as the
 material**. Imported models — especially MMD/VRoid — arrive with long, opaque names like
 `N00_007_01_Tops_01_CLOTH_01 (Instance)` and base textures called `_12.png`; this skill
@@ -25,20 +25,26 @@ both — there is no `.001` suffix collision between a material and its image.)
 
 ## Prerequisites — confirm, don't assume
 
-1. **Blender is open with the Blender MCP addon connected.** The skill cannot work otherwise.
-2. **The model is loaded** and its materials use nodes (`use_nodes = True`). For MMD models,
+1. **Blender is installed and the input blend is saved.** No GUI/MCP connection is required.
+   For an unsaved interactive scene, save a copy first or use GUI/MCP explicitly.
+2. **The model's materials use nodes** (`use_nodes = True`). For MMD models,
    this works whether or not the materials have been converted to Principled BSDF yet (the
    base-texture detector handles both — see the reference).
-3. **Suggest the user back up / save the .blend first.** This renames datablocks and may
-   duplicate images; it's not destructive to geometry, but names are hard to recover.
+3. **Preserve the source and save to a new output.** The bundled CLI uses new output
+   directories and checkpoints. Back up separately when editing a live GUI scene.
 
-If you need API details mid-task, prefer the dedicated Blender MCP tools and fall back to
-`execute_blender_code` only when no dedicated tool fits.
+When bundled with the converter, prefer its `scripts/mmd_cli.py`: inspect, then apply a
+material-only plan (`armature: null`, explicit `meshes`, `rename_materials` operation).
+Mode 1 sets each destination to the existing material name, with `ascii_only: false`
+and `tidy_toon: false`; mode 2 uses approved ASCII names and the defaults. Specify exact
+base/toon node names when detection is ambiguous. It supports unrigged meshes without
+bone edits. If installed alone without the parent scripts, run this skill's reference
+bpy in a disposable background Blender process, as described in its execution section.
 
 ## Step 0 — Ask the mode first (required)
 
-Before doing anything else, present the user with the two modes and **wait for their
-choice**:
+If the user's requested mode is not already clear, present the two modes and **wait for
+their choice**:
 
 ```
 マテリアル/テクスチャの名前整理を始めます。モードを選んでください：

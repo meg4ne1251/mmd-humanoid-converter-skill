@@ -1,5 +1,9 @@
 # Step 4 — Delete `_shadow` / `_dummy` bones
 
+**CLI:** inspect actual weights, then put confirmed zero-weight names in `edit_bones.delete`.
+Hidden bone collections do not prevent CLI access; no GUI unhide is needed.
+See [CLI workflow](cli-workflow.md). The snippets below are custom-bpy/GUI examples.
+
 **Problem:** MMD rigs include bones whose names start with `_shadow` or `_dummy`. They live in a **hidden bone collection** and don't appear even with `Alt+H`, which makes them easy to miss. Their purpose isn't needed for a Humanoid rig, and they ~never carry weight (≈99%), so they're safe to delete once revealed.
 
 ## Reveal hidden bone collections, then delete

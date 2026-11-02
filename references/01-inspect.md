@@ -10,7 +10,13 @@
 4. **Material slots per mesh** — needed later for part separation.
 5. **Bone collections** — MMD hides `_shadow`/`_dummy` and sometimes other groups; note which are hidden.
 
-## Prefer dedicated MCP tools
+## CLI first
+
+Use `python3 scripts/mmd_cli.py inspect INPUT --output-dir NEW_DIR` and read `report.json`.
+It includes actual weight counts/sums, hierarchy, bindings, materials and image node names.
+See [CLI workflow](cli-workflow.md). The snippet below is for custom bpy/GUI inspection.
+
+## GUI/MCP fallback
 
 Use `get_objects_summary` and `get_object_detail_summary` first. Drop to `execute_blender_code` only for things they don't cover (e.g. full bone tree dump, vertex-group listing).
 

@@ -33,6 +33,9 @@ env/
 *.blend@
 *.skill
 
+# CLI examples write model checkpoints, textures and reports here.
+/work/
+
 
 # ===== 検証用スクショ（ルートの一時出力。公開しない） =====
 /_*.png

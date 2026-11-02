@@ -1,5 +1,9 @@
 # Step 1 — Delete junk objects
 
+**CLI:** use the `delete_objects` plan operation with an inspected exact name list.
+It is not recursive: include confirmed physics children explicitly. Surviving children
+retain world transforms. See [CLI workflow](cli-workflow.md); snippets below describe the GUI/custom-bpy alternative.
+
 **Goal:** keep only the mesh(es) and the armature. MMD imports bring in collision shapes, rigid bodies, and joint objects that are useless for a Humanoid rig and clutter every later step.
 
 These are often hidden — `Alt+H` reveals a swarm of small physics objects.

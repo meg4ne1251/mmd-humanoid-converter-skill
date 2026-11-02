@@ -2,16 +2,23 @@
 
 ## このプロジェクトは何か
 
-MMD（MikuMikuDance）モデルを **Humanoid 形式モデルへ変換する作業を、手動ではなく AI アシスタント + Blender MCP で（半）自動化するスキル** を制作するプロジェクト。
+MMD（MikuMikuDance）モデルを **Humanoid 形式モデルへ変換する作業を、手動ではなく AI アシスタント + Blender CLI で（半）自動化するスキル** を制作するプロジェクト。
 
-これまで `docs-not-commit/` に書かれた手順を人間が手動で Blender 上で実行していた。その一連の作業を、Gemini が Blender MCP を通じて bpy コードを実行することで代行できるようにするのが目標。
+これまで `docs-not-commit/` に書かれた手順を人間が手動で Blender 上で実行していた。現在はGemini が保存済み入力を Blender CLI のバックグラウンド実行で処理する。GUI/MCP は対話修正が必要な場合の補助経路。
+
+## 標準の実行経路
+
+- `scripts/mmd_cli.py` の `inspect → plan → apply --dry-run → apply → verify/render → export` を使う。計画の形式・対応操作は `references/cli-workflow.md`。
+- Blender GUI起動・MCP接続・手動インポートはCLIの前提ではない。入力と出力は別にし、新規出力ディレクトリとチェックポイントを使う。
+- 操作後の検査・保存後の再読込・画像確認まで行い、未実施項目を成功扱いにしない。
+- `python3 -m unittest discover -s tests -p 'test_*.py' -v` で合成モデルの統合テストを実行できる。
 
 ## 配布方針（重要）
 
 - このリポジトリは **Public リポジトリとして配布** する。
 - 最終形は **AI スキルとして単一スキルリポジトリ** で配布する（リポジトリ＝1スキル）。**リポジトリ名は `mmd-humanoid-converter-skill`、スキル名（`SKILL.md` の `name:`）は `mmd-humanoid-converter`** とする（リポジトリ名にだけ `-skill` を付ける）。
 - つまりルートに `SKILL.md` を置き、リポジトリをクローンすればそのままスキルとして使える構成を目指す。
-- ただし `material-texture-namer/` に**単独でも使えるサブスキル**を同梱している（Step12 の名前整理を任意の Blender モデルへ単体適用するためのもの）。メインスキルはルートの `SKILL.md`、サブスキルは `material-texture-namer/SKILL.md`。スキルローダーが両者を二重登録しないか、利用クライアントで一度確認すること。
+- ただし `material-texture-namer/` に**単独でも使えるサブスキル**を同梱している（Step11 の名前整理を任意の Blender モデルへ単体適用するためのもの）。メインスキルはルートの `SKILL.md`、サブスキルは `material-texture-namer/SKILL.md`。スキルローダーが両者を二重登録しないか、利用クライアントで一度確認すること。
 - **Claude と Gemini の両方に対応** する。`CLAUDE.md`（Claude 向け）と `GEMINI.md`（Gemini 向け・このファイル）の両方を配置。
 
 ## Gemini でのスキル利用（開発者向け）
@@ -24,7 +31,7 @@ mkdir -p .gemini/skills
 git clone https://github.com/meg4ne1251/mmd-humanoid-converter-skill.git \
   .gemini/skills/mmd-humanoid-converter
 
-# Blender MCP サーバーの設定（.gemini/settings.json に追記）
+# GUIフォールバックも使う場合だけ Blender MCP サーバーを設定
 # {
 #   "mcpServers": {
 #     "blender": {
@@ -35,19 +42,19 @@ git clone https://github.com/meg4ne1251/mmd-humanoid-converter-skill.git \
 # }
 ```
 
-**開発時の構成**: このリポジトリを直接開発する場合は `.gemini/skills/mmd-humanoid-converter/` にルートの `SKILL.md` と `references/` へのシンボリックリンクが置かれている。こうすることで、ルートのファイルを編集するだけで Gemini スキルにも反映される。
+**開発時の構成**: このリポジトリを直接開発する場合は `.gemini/skills/mmd-humanoid-converter/` にルートの `SKILL.md`・`references/`・`scripts/` へのシンボリックリンクが置かれている。こうすることで、ルートのファイルを編集するだけで Gemini スキルにも反映される。
 
 ## 絶対に守ること
 
 - **`docs-not-commit/` は絶対にコミットしない。** 元手順記事・参考画像・動画が入っており、公開リポジトリに含めてはいけない。`.gitignore` で除外済み（綴り違い `docs-note-commit/` も予防的に除外）。新しい参考資料を置くときも必ずこのフォルダ配下に置くこと。
-- 破壊的な Blender 操作（ボーン削除・ウェイト削除等）は、実行前にシーンを inspect し、ユーザー確認を取ってから行う（Blender MCP の方針に従う）。
+- 破壊的な Blender 操作（ボーン削除・ウェイト削除等）は、実行前にシーンを inspect し、選択済みのステップ実行／一括実行モードに従う。未知構造や曖昧な対応は推測しない。
 - モデルは構造・命名がバラバラなので **「決め打ち」をしない**。必ずシーンの実状態を読んでから判断する。
 
 ## 変換フロー（元記事の要約 = スキルが実装すべき手順）
 
 対象は MMDtools で読み込んだ PMX/PMD モデル。目標は Humanoid 規格のボーン構造（下記）にすること。
 
-1. **MMDtools アドオン導入 / モデル読込** — `.pmx/.pmd` をインポート（前提条件。スキルではユーザーに依頼 or 確認）。
+1. **MMDtools アドオン導入 / モデル読込** — CLIで `.pmx/.pmd` をインポート可能。保存済み `.blend` は直接扱う。
 2. **余計なオブジェクト削除** — 当たり判定等の物理オブジェクトを削除し、メッシュとアーマチュアのみ残す。
 3. **ボーンコンストレイント解除** — ポーズモードで色付き（コンストレイント付き）ボーンの constraint を全削除。
 4. **ボーン構造の変換（最重要）**
@@ -63,7 +70,7 @@ git clone https://github.com/meg4ne1251/mmd-humanoid-converter-skill.git \
 11. **任意の仕上げ** — 先端ボーン削除（名前に「先」を含むボーン。ウェイト確認後に Edit Mode で削除）、三角面→四角面、服で隠れる素体メッシュの作成。
 12. **マテリアル／テクスチャ名の整理** — MMD/VRoid 由来の長く不透明な名前を短い半角英数へ整理し、各マテリアルの**ベースカラー・テクスチャ名をマテリアル名に一致**させる。共有テクスチャは複製。FBX はこの名前を焼き込むので**エクスポート前**に実施。`references/13-material-texture-rename.md`。
 13. **FBX 出力** — 完了後 FBX 出力 → MotionBuilder でキャラクタライズ。
-14. **テクスチャ出力（任意・会話終了時確認）** — blendファイルと同階層の `tex/` フォルダに全テクスチャを PNG 形式（`Blender内テクスチャ名.png`）で保存し、Blender内パスを `//tex/...` に更新。全作業終了時の締めくくりコメントで必ず「追加でテクスチャの出力を行いますか？」と確認する。`references/14-texture-export.md`。
+14. **テクスチャ出力（任意・会話終了時確認）** — blendファイルと同階層の `tex/` フォルダに全テクスチャを PNG 形式（`Blender内テクスチャ名.png`）で保存し、Blender内パスを `//tex/...` に更新。モデル変換後、出力希望がまだ不明な場合だけ「追加でテクスチャの出力を行いますか？」と確認する。出力済み・希望済み・手順編集のみの場合は再確認しない。`references/14-texture-export.md`。
 
 ### ウェイト転送について
 
@@ -93,20 +100,22 @@ Bones
 - **MMD 変換に「絶対」は存在しない。** モデルごとに形式・構造が異なるため、手順は一例。全モデルの変換成功は保証されない。
 - スキルは「全自動で完璧に変換」ではなく、「定型作業を代行し、判断が要る箇所はユーザーに確認・提示する」方針が現実的。
 
-## Blender MCP メモ（Gemini 向け）
+## Blender MCP メモ（GUIフォールバック専用・Gemini 向け）
 
 - Blender MCP のツールでシーン操作する。MCP サーバー名は `blender`（`.gemini/settings.json` で定義）。
 - `execute_blender_code` は最終手段で、`get_objects_summary` / `get_object_detail_summary` / `search_api_docs` などの専用ツールを優先する。
 - 操作前にモード（Object/Edit/Pose）・アクティブオブジェクト・選択状態を明示的に設定する。bmesh は edit mode で使い flush する。変更後は depsgraph を更新してから計算値を読む。
-- **`execute_blender_code` 経由のコードは通常の UI コンテキストを持たない**ため、多くの `bpy.ops` オペレーターが context エラーで失敗する。データレベル API を優先し、オペレーターが必要な場合は VIEW_3D コンテキストオーバーライドを使う（詳細は `SKILL.md` の「Running operators through the Blender MCP」セクション参照）。
+- **`execute_blender_code` 経由のコードは通常の UI コンテキストを持たない**ため、多くの `bpy.ops` オペレーターが context エラーで失敗する。データレベル API を優先し、オペレーターが必要な場合は VIEW_3D コンテキストオーバーライドを使う（詳細は `SKILL.md` の「GUI/MCP fallback only」セクション参照）。
 
 ## リポジトリ構成
 
 ```
 / (リポジトリルート = スキル本体)
+├─ scripts/           # CLIランチャーとBlender処理
+├─ tests/             # 合成モデルによる統合テスト
 ├─ SKILL.md           # スキル定義（変換フローのオーケストレーション）
 ├─ references/         # ステップ別の詳細（bpy コード＋落とし穴。01〜14 + bone-naming/material-bsdf）
-├─ material-texture-namer/  # 同梱の単独サブスキル（Step12 の名前整理を任意モデルへ単体適用）
+├─ material-texture-namer/  # 同梱の単独サブスキル（Step11 の名前整理を任意モデルへ単体適用）
 ├─ CLAUDE.md           # Claude 向けプロジェクトメモ
 ├─ GEMINI.md           # Gemini 向けプロジェクトメモ（このファイル）
 ├─ README.md           # 公開用説明

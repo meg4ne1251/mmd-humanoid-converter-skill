@@ -1,10 +1,10 @@
 # mmd-humanoid-converter
 
-MMD（MikuMikuDance）の `.pmx` / `.pmd` モデルを、Blender 上できれいな **Humanoid リグ** に変換する **AI スキル**（Claude / Gemini 対応）です。AI アシスタントが **Blender MCP** を通じて Blender を操作し、変換作業を代行します。
+MMD（MikuMikuDance）の `.pmx` / `.pmd` モデルや保存済み `.blend` を、Blenderできれいな **Humanoid リグ** に変換する **AI スキル**（Claude / Gemini / Codex 対応）です。通常は **Blender CLIのバックグラウンド実行**で処理し、GUIの起動・MCP接続は不要です。対話的な修正が必要な場合にはGUI/MCPを使えます。
 
 MMD 特有のボーン（ねじれ／IK／センター／グループボーンなど）の削除、複数ボーンに分割されたウェイトを本来の手足ボーンへ集約する転送、下向きの MMD 腰ボーンを上向きの Humanoid `Hips` へ作り直す処理、Humanoid 命名規則へのリネーム、親ボーンの tail と一致する子ボーンを幾何判定で連結するボーン整形、MMD トゥーンマテリアルの Principled BSDF への変換、メッシュのパーツ分離、日本語の母音シェイプキーのリネーム、までを扱います。
 
-> ⚠️ **MMD 変換に「絶対」は存在しません。** モデルごとに構造も命名もバラバラなため、このスキルは **半自動** です。定型作業は代行しますが、判断が必要な箇所（特にボーン・ウェイトの破壊的操作）は必ずユーザーに確認します。すべてのモデルを完璧にノータッチで変換できることは保証しません。
+> **MMD 変換に「絶対」は存在しません。** モデルごとに構造も命名も異なるため、実データを調査して変換計画を作ります。ステップ実行では変更前に確認し、一括実行では未知の構造・曖昧な対応・エラーで停止します。
 
 ## このスキルが行うこと
 
@@ -44,14 +44,15 @@ Reference → Parent → Hips
 
 このスキルを使うには、事前に次の環境が整っている必要があります。
 
-- **Blender 4.x または 5.x** がインストールされていること（バージョンによりノードのソケット名などが異なりますが、スキルは両対応です）。
-- Blender に **[MMD Tools](https://extensions.blender.org/add-ons/mmd-tools/)** アドオンが導入済みであること。
-- 変換対象の MMD モデルが、MMD Tools 経由ですでに **Blender にインポート済み**であること（File → Import → MikuMikuDance Model）。**インポート自体はこのスキルの対象外**なので、シーンに何もない場合はまずユーザー側でインポートしてください。
-- **[Blender MCP](https://github.com/ahujasid/blender-mcp)** がセットアップ済みであること（Blender アドオンの導入 + MCP サーバーの接続）。セットアップ手順はリポジトリの README を参照してください。
+- **Blender** がインストールされていること。新しいCLIの合成モデル統合テストは **5.1.1** で実施しています。他バージョン・実モデルは個別検証が必要です。
+- 起動用の **Python 3.10以降**。`bpy` はBlender内蔵のPythonを使います。
+- PMX/PMD入力の場合は **[MMD Tools](https://extensions.blender.org/add-ons/mmd-tools/)** が導入済みであること。インポート済み `.blend` の通常編集には不要です。
+- 保存済みの入力ファイル。GUI上の未保存シーンを使う場合は、先に入力用コピーを保存してください。
 - **スキルに対応した AI クライアント**:
   - Claude: Claude Code / Cowork など（**Opus 推奨**。Sonnet でも動作しますが、複雑なステップで勘違いの可能性がやや高くなります）
   - Gemini: Gemini CLI（`.gemini/skills/` にスキルを配置）
-- **変換前に .blend ファイルのバックアップを取ること。** このスキルはボーンの削除・ウェイト統合・ペアレント再構築など、元に戻せない変更を行います。スキル開始前に必ずファイルを別名で保存（File → Save Copy… またはファイルを複製）しておいてください。スキルはバックアップの確認が取れてから作業を開始します。
+  - Codex: このプロジェクトまたはインストールしたスキルを読み込み、CLIを実行します。
+- CLIは入力を上書きせず、**新規の出力ディレクトリ**と工程ごとのチェックポイントへ保存します。GUI/MCPで直接編集するときは別途バックアップを取ってください。
 
 ## 導入方法
 
@@ -69,7 +70,7 @@ git clone https://github.com/meg4ne1251/mmd-humanoid-converter-skill.git \
 
 （Cowork など他のクライアントの場合は、お使いのクライアントがスキルを読み込む場所に配置してください。）
 
-さらに Blender MCP サーバーを登録します（Claude Code の場合）:
+CLIだけを使う場合、MCPサーバー登録は不要です。GUIで対話操作もする場合は、任意でBlender MCPサーバーを登録します（Claude Code の場合）:
 
 ```bash
 claude mcp add blender uvx blender-mcp
@@ -87,7 +88,7 @@ git clone https://github.com/meg4ne1251/mmd-humanoid-converter-skill.git \
   .gemini/skills/mmd-humanoid-converter
 ```
 
-さらに `.gemini/settings.json` に Blender MCP サーバーの設定を追加します（未設定の場合）:
+GUI/MCPも使う場合だけ、任意で `.gemini/settings.json` に以下を追加します:
 
 ```json
 {
@@ -104,15 +105,35 @@ Gemini CLI を起動すると、`SKILL.md` が自動的に読み込まれ、MMD 
 
 ## 使い方
 
-1. **Blender 側**: MMD Tools で `.pmx` / `.pmd` をインポートし、Blender MCP サーバーを起動して AI クライアントに接続します。
-2. **AI 側**: 例えば「Blender に MMD モデルをインポートしたので、Humanoid リグに変換して」のように依頼します。
-3. AI がシーンを調査したあと、最初に **2 つの実行モード** を提示します。
+1. 入力 `.blend` または `.pmx` / `.pmd` のパスを指定し、AIにHumanoid変換を依頼します。BlenderのGUI起動は不要です。
+2. AIは実行モードを選択／引き継ぎ、CLIでシーンを調査してサマリーとモデル固有の変換計画を作ります。
+3. 実行モードは以下の2種類です。
    - **A）ステップ実行モード（推奨）**: 各破壊的操作の前に、削除・変更内容とその理由を提示して確認を取ってから実行します。初めてのモデルや構造が複雑なモデルにはこちらを推奨します。
    - **B）一括実行モード**: 確認なしで全フェーズを連続実行します。ただし「想定外のボーンにウェイトが乗っている」「ボーン名が想定と大きく異なり自動マッピングできない」「アーマチュアが複数ある」などの場合は中断して報告します。
 
    どちらのモードでも、最初のシーン調査（Step 0）は必ず実行し、見つかった内容のサマリを提示してから作業に入ります。
 
-変換は一気通貫で完璧に終わるものではなく、モデルによっては手作業の補正が必要になります。各削除バッチのあとはポーズテストでメッシュがリグに追従するか確認しながら進めるのが安全です。
+4. 計画のドライラン、適用、数値ポーズ検査と画像生成、FBX・必要ならPNG出力、保存後再読込検査までCLIで実行します。画像での見た目確認と、後段ツールでの互換性検証も区別して報告します。
+
+### CLIの入口
+
+スキルのルートで実行します。`--output-dir` には、まだ存在しないディレクトリを指定してください。
+
+```sh
+python3 scripts/mmd_cli.py inspect "model.blend" --output-dir "work/01-inspect"
+```
+
+`report.json` の実情報から `plan.json` を作った後、各コマンドの成功を確認して順に実行します。
+
+```sh
+python3 scripts/mmd_cli.py apply "model.blend" --plan "plan.json" --dry-run --output-dir "work/02-preview"
+python3 scripts/mmd_cli.py apply "model.blend" --plan "plan.json" --output-dir "work/03-converted"
+python3 scripts/mmd_cli.py export "work/03-converted/converted.blend" --textures --require-humanoid --output-dir "work/04-export"
+```
+
+`inspect / apply / verify / render / export` を用意しています。Blenderは `--blender`、`BLENDER_BIN`、PATH、macOS標準アプリ位置の順で検出するため、対話シェルのaliasは不要です。対応する計画・検証項目・制限は **[CLI手順](references/cli-workflow.md)** を参照してください。
+
+変換計画はモデルごとに作ります。ボーン名やマテリアルの分類を固定した全自動変換ではありません。GUIは手動モデリングやウェイトペイント等が必要な場合に使います。
 
 ## 注意事項
 
@@ -125,7 +146,10 @@ Gemini CLI を起動すると、`SKILL.md` が自動的に読み込まれ、MMD 
 ```
 .
 ├── SKILL.md          # スキル本体（変換フローのオーケストレーション）
+├── scripts/          # CLIランチャーとBlender側の処理
+├── tests/            # 合成モデルによるCLI統合テスト
 ├── references/       # ステップ別の詳細（bpy コード＋落とし穴）
+│   ├── cli-workflow.md
 │   ├── 01-inspect.md
 │   ├── 02-cleanup-objects.md
 │   ├── 03-constraints.md

@@ -1,5 +1,9 @@
 # Step 9 — Rename face shape keys
 
+**CLI:** `rename_shape_keys` uses the vowel mapping below by default. `objects` can limit
+it to inspected face meshes; `clear_shape_keys` removes unwanted copies only from explicitly
+listed meshes. See [CLI workflow](cli-workflow.md).
+
 MMD face shape keys for the vowels use Japanese kana: `あ い う え お`. Rename them to the Latin convention used downstream: **`a i u e o`** — a straight phonetic mapping (お → `o`).
 
 ```python

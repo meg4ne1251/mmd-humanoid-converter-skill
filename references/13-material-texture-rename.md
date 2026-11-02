@@ -1,5 +1,10 @@
 # Step 11 — Tidy material & texture names
 
+**CLI:** use `rename_materials` with an explicit mapping after inspection. It duplicates
+shared base images, handles unique toon images, checks collisions and reports flat-color
+materials. Dry-run and follow the selected execution mode for approval. See [CLI workflow](cli-workflow.md).
+The snippets below describe the underlying naming rules and custom-bpy alternative.
+
 The last editing step before export. MMD/VRoid imports leave materials and image
 textures with long, opaque names like `N00_007_01_Tops_01_CLOTH_01 (Instance)` and
 base textures called `_12.png`. This step renames each material to a **short, clear,
